@@ -1,0 +1,255 @@
+import React, { useState } from 'react';
+import { Language } from '../../types';
+import { FireAnimation } from '../common/FireAnimation';
+import { AmbientFireBackground } from '../common/AmbientFireBackground';
+import { soundEngine } from '../common/AudioAmbiance';
+
+interface FireSimulationLabProps {
+  language: Language;
+  onExploreMap?: () => void;
+}
+
+export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
+  language,
+  onExploreMap,
+}) => {
+  const [windSpeed, setWindSpeed] = useState<number>(22); // km/h
+  const [humidity, setHumidity] = useState<number>(30); // %
+  const [fuelType, setFuelType] = useState<'grass' | 'stove' | 'electrical' | 'timber'>('grass');
+  const [soundActive, setSoundActive] = useState<boolean>(false);
+
+  // Compute simulated danger index (0 - 100)
+  const drynessFactor = Math.max(0, (100 - humidity) / 100);
+  const windFactor = Math.min(1, windSpeed / 40);
+  const fuelMultiplier = fuelType === 'grass' ? 1.2 : fuelType === 'timber' ? 1.0 : fuelType === 'stove' ? 0.9 : 0.8;
+
+  const simulatedIndex = Math.min(
+    100,
+    Math.round((drynessFactor * 55 + windFactor * 45) * fuelMultiplier)
+  );
+
+  // Estimated spark drift distance in meters
+  const sparkDriftMeters = Math.round((windSpeed * 1.8) * (drynessFactor * 1.2));
+
+  // Determine intensity for the visual flame animation
+  const flameIntensity =
+    simulatedIndex >= 80 ? 'extreme' : simulatedIndex >= 55 ? 'high' : simulatedIndex >= 35 ? 'moderate' : 'low';
+
+  const handleToggleSound = () => {
+    const newState = soundEngine.toggle();
+    setSoundActive(newState);
+  };
+
+  return (
+    <div className="w-full max-w-7xl mx-auto my-8 p-4 sm:p-6 lg:p-8">
+      <div className="bg-white/80 backdrop-blur-2xl rounded-[36px] border border-black/[0.06] shadow-[0_24px_60px_rgba(11,18,77,0.08)] p-6 sm:p-10 overflow-hidden">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-8 border-b border-black/[0.06]">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-xs font-mono font-bold tracking-widest text-[#FF633C] uppercase">
+                {language === 'mn' ? 'ИНТЕРАКТИВ ЛАБОРАТОРИ' : 'INTERACTIVE FIRE LAB'}
+              </span>
+              <span className="text-slate-300">/</span>
+              <span className="text-xs text-[#72778A]">
+                {language === 'mn' ? 'Салхи ба хуурайшилтын симуляци' : 'Physics & Environment'}
+              </span>
+            </div>
+            <h2 className="font-editorial text-2xl sm:text-4xl font-bold text-[#0B124D]">
+              {language === 'mn'
+                ? 'Салхи, чийгшил галын дөлд хэрхэн нөлөөлдөг вэ?'
+                : 'Interactive Flame Physics & Ignition Laboratory'}
+            </h2>
+          </div>
+
+          {/* Sound Ambiance Toggle */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleToggleSound}
+              className={`px-4 py-2 rounded-2xl text-xs font-mono font-semibold flex items-center gap-2 transition-all shadow-xs ${
+                soundActive
+                  ? 'bg-[#FF633C] text-white shadow-md shadow-[#FF633C]/20'
+                  : 'bg-[#F7F8FA] hover:bg-slate-200 text-[#0B124D]'
+              }`}
+              title="Бодит галын дөлийн дуу чимээг асаах/унтраах"
+            >
+              <span>{soundActive ? '🔥 Чимээ асаалттай' : '🔇 Дуу асаах'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 2-Column Lab Layout: Flame Stage & Sensitivity Sliders */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-8 items-center">
+          
+          {/* Left: Interactive Flame Showcase Stage (5 cols) */}
+          <div className="lg:col-span-5 bg-gradient-to-b from-[#0B124D] to-[#060927] rounded-[32px] p-8 text-white text-center flex flex-col items-center justify-between min-h-[420px] relative overflow-hidden shadow-2xl">
+            {/* Ambient Fire Glow Background */}
+            <AmbientFireBackground intensity={1.2} />
+
+            {/* Ambient Background Grid */}
+            <div
+              className="absolute inset-0 opacity-[0.05] pointer-events-none"
+              style={{
+                backgroundImage: `radial-gradient(#FFFFFF 1px, transparent 1px)`,
+                backgroundSize: '20px 20px',
+              }}
+            />
+
+            <div className="z-10 w-full flex items-center justify-between text-[11px] font-mono text-white/60">
+              <span>LIVE RENDER</span>
+              <span className="text-[#FF633C] font-bold uppercase">{flameIntensity} MODE</span>
+            </div>
+
+            {/* Canvas Animated Fire */}
+            <div className="my-auto relative z-10 py-4">
+              <FireAnimation
+                intensity={flameIntensity}
+                windEffect={(windSpeed / 40) * 0.7}
+                size="lg"
+                interactive={true}
+              />
+              <span className="text-[11px] text-white/50 block mt-2 font-mono">
+                {language === 'mn'
+                  ? 'Хулганаараа дөл дээгүүр хөдөлгөж агаарын урсгалыг сорино уу'
+                  : 'Hover/move cursor to create aerodynamic turbulence'}
+              </span>
+            </div>
+
+            {/* Spark Distance Gauge */}
+            <div className="z-10 w-full p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-between text-xs">
+              <div className="text-left">
+                <span className="text-[10px] text-white/60 block font-mono">
+                  {language === 'mn' ? 'Оч үсрэх аюултай зай' : 'Simulated Spark Drift'}
+                </span>
+                <span className="font-mono text-xl font-bold text-[#FF633C]">
+                  ~{sparkDriftMeters} метр
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-white/60 block font-mono">
+                  {language === 'mn' ? 'Дэгдэлтийн индекс' : 'Spread Index'}
+                </span>
+                <span className="font-mono text-xl font-bold text-white">
+                  {simulatedIndex} / 100
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Controls & Real-Time Physical Sliders (7 cols) */}
+          <div className="lg:col-span-7 space-y-6">
+            
+            {/* Slider 1: Wind Velocity */}
+            <div className="p-5 rounded-2xl bg-[#F7F8FA] border border-black/[0.05] space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-[#0B124D] flex items-center gap-2">
+                  <span>💨</span>
+                  <span>{language === 'mn' ? 'Салхины хурд' : 'Wind Velocity'}</span>
+                </span>
+                <span className="font-mono font-bold text-sm text-[#0B124D]">
+                  {windSpeed} км/ц
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="45"
+                value={windSpeed}
+                onChange={(e) => setWindSpeed(parseInt(e.target.value))}
+                className="w-full accent-[#FF633C] cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                <span>0 км/ц (Намуун)</span>
+                <span>20 км/ц (Салхитай)</span>
+                <span>40+ км/ц (Хүчтэй шуурга)</span>
+              </div>
+            </div>
+
+            {/* Slider 2: Relative Humidity */}
+            <div className="p-5 rounded-2xl bg-[#F7F8FA] border border-black/[0.05] space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-[#0B124D] flex items-center gap-2">
+                  <span>💧</span>
+                  <span>{language === 'mn' ? 'Агаарын харьцангуй чийгшил' : 'Relative Humidity'}</span>
+                </span>
+                <span
+                  className={`font-mono font-bold text-sm ${
+                    humidity <= 35 ? 'text-[#E93B2F]' : 'text-[#12B89A]'
+                  }`}
+                >
+                  {humidity}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="15"
+                max="85"
+                value={humidity}
+                onChange={(e) => setHumidity(parseInt(e.target.value))}
+                className="w-full accent-[#0B124D] cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                <span className="text-[#E93B2F]">15% (Маш хуурай · Аюултай)</span>
+                <span>50% (Хэвийн)</span>
+                <span className="text-[#12B89A]">85% (Бороотой · Аюулгүй)</span>
+              </div>
+            </div>
+
+            {/* Fuel Type Selector */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-[#0B124D] block">
+                {language === 'mn' ? 'Шатамхай материалын орчин' : 'Combustible Material Type'}
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                {[
+                  { id: 'grass', nameMn: 'Шар өвс', nameEn: 'Dry Grass', icon: '🌾' },
+                  { id: 'stove', nameMn: 'Зуухны үнс', nameEn: 'Stove Cinders', icon: '🔥' },
+                  { id: 'timber', nameMn: 'Модон хашаа', nameEn: 'Timber Fence', icon: '🪵' },
+                  { id: 'electrical', nameMn: 'Цахилгаан утас', nameEn: 'Wiring', icon: '⚡' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setFuelType(item.id as any)}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-2 font-medium ${
+                      fuelType === item.id
+                        ? 'bg-[#0B124D] text-white border-[#0B124D] shadow-sm'
+                        : 'bg-[#F7F8FA] text-slate-700 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    <span className="truncate">{language === 'mn' ? item.nameMn : item.nameEn}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Analytical Takeaway Box */}
+            <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-950 leading-relaxed">
+              <span className="font-bold block mb-1">
+                💡 {language === 'mn' ? 'Эрдэм шинжилгээний дүгнэлт:' : 'Scientific Insight:'}
+              </span>
+              <p>
+                {language === 'mn'
+                  ? `Одоогийн тохиргоогоор салхи ${windSpeed} км/ц, чийгшил ${humidity}% байхад яндан болон үнснээс гарсан оч ойролцоогоор ${sparkDriftMeters} метрийн радиуст хүрч, модон хашаа эсвэл шар өвсийг амархан ноцоох нөхцөл бүрдэж байна.`
+                  : `At ${windSpeed} km/h wind and ${humidity}% humidity, airborne embers can traverse ~${sparkDriftMeters} meters, carrying sufficient heat to ignite dry fuel downwind.`}
+              </p>
+            </div>
+
+            {onExploreMap && (
+              <button
+                onClick={onExploreMap}
+                className="w-full py-3 bg-[#0B124D] hover:bg-[#11166B] text-white font-bold text-xs rounded-xl transition-all shadow-md text-center"
+              >
+                {language === 'mn' ? 'Бодит дүүргүүдийн газрын зураг дээр харах' : 'Inspect Real UB Districts on Map'} →
+              </button>
+            )}
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  );
+};

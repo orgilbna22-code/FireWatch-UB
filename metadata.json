@@ -1,0 +1,8 @@
+{
+  "name": "Remix FIREWATCH UB",
+  "description": "Гал гарахаас өмнө эрсдэлийг нь харуулна. Улаанбаатар хотын галын эрсдэлийн тандалт, дүн шинжилгээ, олон нийтийн аюулгүй байдлын платформ.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
