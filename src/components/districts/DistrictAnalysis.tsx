@@ -351,11 +351,11 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
               </h3>
             </div>
 
-            {/* Filter Pills */}
-            <div className="flex items-center gap-1.5 bg-[#F7F8FA] p-1 rounded-2xl text-xs">
+            {/* Filter Pills with horizontal scroll on mobile */}
+            <div className="flex items-center gap-1.5 bg-[#F7F8FA] p-1 rounded-2xl text-xs overflow-x-auto max-w-full scrollbar-none">
               <button
                 onClick={() => setKhorooFilter('all')}
-                className={`px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                className={`px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap shrink-0 transition-all ${
                   khorooFilter === 'all'
                     ? 'bg-[#0B124D] text-white shadow-xs'
                     : 'text-[#72778A] hover:text-[#0B124D]'
@@ -365,7 +365,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
               </button>
               <button
                 onClick={() => setKhorooFilter('high')}
-                className={`px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                className={`px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap shrink-0 transition-all ${
                   khorooFilter === 'high'
                     ? 'bg-[#E93B2F] text-white shadow-xs'
                     : 'text-[#72778A] hover:text-[#0B124D]'
@@ -375,7 +375,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
               </button>
               <button
                 onClick={() => setKhorooFilter('ger')}
-                className={`px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                className={`px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap shrink-0 transition-all ${
                   khorooFilter === 'ger'
                     ? 'bg-[#FF633C] text-white shadow-xs'
                     : 'text-[#72778A] hover:text-[#0B124D]'
@@ -385,7 +385,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
               </button>
               <button
                 onClick={() => setKhorooFilter('apt')}
-                className={`px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                className={`px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap shrink-0 transition-all ${
                   khorooFilter === 'apt'
                     ? 'bg-[#12B89A] text-white shadow-xs'
                     : 'text-[#72778A] hover:text-[#0B124D]'

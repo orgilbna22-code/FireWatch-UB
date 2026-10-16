@@ -72,7 +72,7 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-[#0B124D]/8 shadow-xs">
           
           {/* Year Timeline Buttons */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs font-mono font-semibold text-[#72778A] mr-2">
               {language === 'mn' ? 'Он:' : 'Year:'}
             </span>
@@ -92,7 +92,7 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
           </div>
 
           {/* Category Selector */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 scrollbar-none">
             {categories.map((c) => (
               <button
                 key={c.id}

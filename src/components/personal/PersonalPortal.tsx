@@ -205,10 +205,10 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
           </div>
 
           {/* Sub Navigation Segmented Switcher */}
-          <div className="relative z-10 flex items-center gap-2 mt-6 pt-6 border-t border-white/10">
+          <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-6 pt-6 border-t border-white/10">
             <button
               onClick={() => setActiveSubTab('home_audit')}
-              className={`px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 shadow-sm ${
+              className={`px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm min-h-[44px] ${
                 activeSubTab === 'home_audit'
                   ? 'bg-white text-[#0B124D] shadow-md scale-102'
                   : 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
@@ -220,7 +220,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
 
             <button
               onClick={() => setActiveSubTab('creator_profile')}
-              className={`px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 shadow-sm ${
+              className={`px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm min-h-[44px] ${
                 activeSubTab === 'creator_profile'
                   ? 'bg-[#FF633C] text-white shadow-md scale-102'
                   : 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'

@@ -20,6 +20,9 @@ import { FamilyQuickView } from './components/common/FamilyQuickView';
 import { FireSimulationLab } from './components/simulation/FireSimulationLab';
 import { GlobalFireBackground } from './components/common/GlobalFireBackground';
 import { PersonalPortal } from './components/personal/PersonalPortal';
+import { MobileBottomNav } from './components/common/MobileBottomNav';
+import { MobileMenuDrawer } from './components/common/MobileMenuDrawer';
+import { soundEngine } from './components/common/AudioAmbiance';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('landing');
@@ -28,6 +31,8 @@ export default function App() {
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>('bayanzurkh');
   const [isDataSourcesModalOpen, setIsDataSourcesModalOpen] = useState(false);
   const [isFamilyModeOpen, setIsFamilyModeOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [soundOn, setSoundOn] = useState(false);
 
   // Smooth scroll to top when changing views
   useEffect(() => {
@@ -44,11 +49,16 @@ export default function App() {
     setActiveTab('districts');
   };
 
+  const handleToggleSound = () => {
+    const s = soundEngine.toggle();
+    setSoundOn(s);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#12152A] antialiased selection:bg-[#FF633C]/20 selection:text-[#0B124D] relative">
+    <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#12152A] antialiased selection:bg-[#FF633C]/20 selection:text-[#0B124D] relative w-full max-w-full overflow-x-hidden">
       
       {/* Omnipresent Living Ambient Fire Atmosphere Across Whole Site */}
-      <GlobalFireBackground initialMode="vivid" />
+      <GlobalFireBackground initialMode="soft" />
 
       {/* Universal Top Navigation Header */}
       <Header
@@ -61,6 +71,7 @@ export default function App() {
         onOpenDemoInfo={() => setIsDataSourcesModalOpen(true)}
         onToggleFamilyMode={() => setIsFamilyModeOpen(!isFamilyModeOpen)}
         isFamilyModeOpen={isFamilyModeOpen}
+        onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
       />
 
       {/* Optional Family & Elder Friendly Quick Panel */}
@@ -86,7 +97,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main View Router with Apple-Grade Smooth Transition */}
-      <main className="flex-1 flex flex-col relative">
+      <main className={`flex-1 flex flex-col relative w-full max-w-full overflow-x-hidden ${activeTab === 'map' ? '' : 'pb-20 lg:pb-0'}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -205,15 +216,15 @@ export default function App() {
             )}
 
             {activeTab === 'sources' && (
-              <div className="p-8 max-w-4xl mx-auto my-8">
-                <div className="bg-white/90 backdrop-blur-xl p-8 rounded-3xl border border-black/[0.06] shadow-sm space-y-6">
+              <div className="p-4 sm:p-8 max-w-4xl mx-auto my-4 sm:my-8">
+                <div className="bg-white/90 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-black/[0.06] shadow-sm space-y-6">
                   <span className="text-xs font-mono font-bold text-[#FF633C] uppercase tracking-wider block">
-                    GOVERNANCE
+                    GOVERNANCE & TRANSPARENCY
                   </span>
-                  <h2 className="font-editorial text-3xl font-bold text-[#0B124D]">
+                  <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-[#0B124D]">
                     {language === 'mn' ? 'Өгөгдлийн эх сурвалж ба ил тод байдал' : 'Data Governance & Sources'}
                   </h2>
-                  <p className="text-sm text-[#72778A] leading-relaxed">
+                  <p className="text-xs sm:text-sm text-[#72778A] leading-relaxed">
                     {language === 'mn'
                       ? 'ОБЕГ, Үндэсний статистикийн хороо, ЦУОШГ-ын албан ёсны өгөгдлийг нэгтгэн орон зайн математик загварчлалаар боловсруулсан арга зүй.'
                       : 'Aggregated datasets processed with open multi-variable decision analysis formulas.'}
@@ -239,7 +250,7 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Footer (Hidden only on full GIS map view for immersion) */}
+      {/* Footer (Hidden on map view for full screen immersion) */}
       {activeTab !== 'map' && (
         <Footer
           language={language}
@@ -247,6 +258,30 @@ export default function App() {
           onOpenSources={() => setIsDataSourcesModalOpen(true)}
         />
       )}
+
+      {/* Mobile Fixed Bottom Navigation Bar (Hidden on Desktop) */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        language={language}
+        onOpenMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        isMenuOpen={isMobileMenuOpen}
+      />
+
+      {/* Mobile Slide-Over Menu Drawer */}
+      <MobileMenuDrawer
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        language={language}
+        setLanguage={setLanguage}
+        onOpenSources={() => setIsDataSourcesModalOpen(true)}
+        onToggleFamilyMode={() => setIsFamilyModeOpen(!isFamilyModeOpen)}
+        isFamilyModeOpen={isFamilyModeOpen}
+        soundOn={soundOn}
+        onToggleSound={handleToggleSound}
+      />
 
       {/* Data Governance & Demo Transparency Modal */}
       <DataSourcesModal

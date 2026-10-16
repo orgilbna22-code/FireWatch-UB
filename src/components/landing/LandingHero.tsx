@@ -68,7 +68,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         {/* ========================================================= */}
         {/* LEFT PANEL: Deep Navy Visual Foundation with Live Fire    */}
         {/* ========================================================= */}
-        <div className="lg:col-span-5 bg-[#0B124D] text-white p-8 md:p-12 lg:p-14 flex flex-col justify-between relative overflow-hidden">
+        <div className="lg:col-span-5 bg-[#0B124D] text-white p-5 sm:p-8 md:p-12 lg:p-14 flex flex-col justify-between relative overflow-hidden">
           
           {/* Ambient Living Fire Thermal Background */}
           <AmbientFireBackground intensity={1.15} />
@@ -95,10 +95,10 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
           </div>
 
           {/* Core Brand & Live Fire Emblem */}
-          <div className="my-8 lg:my-10 z-10">
+          <div className="my-6 lg:my-10 z-10">
             
             {/* Organic Fluid Fire Showcase Glass Vitrine */}
-            <div className="w-48 h-56 sm:w-52 sm:h-60 rounded-[36px] bg-gradient-to-b from-white/12 to-white/5 backdrop-blur-2xl border border-white/20 flex flex-col items-center justify-between p-3 mb-6 shadow-[0_16px_50px_rgba(255,99,60,0.3)] relative group transition-all duration-300 hover:scale-105 active:scale-95">
+            <div className="w-44 h-52 sm:w-52 sm:h-60 rounded-[32px] sm:rounded-[36px] bg-gradient-to-b from-white/12 to-white/5 backdrop-blur-2xl border border-white/20 flex flex-col items-center justify-between p-3 mb-6 shadow-[0_16px_50px_rgba(255,99,60,0.3)] relative group transition-all duration-300 hover:scale-105 active:scale-95 mx-auto sm:mx-0">
               <div className="w-full flex items-center justify-between text-[10px] font-mono text-white/60 px-2 pt-1">
                 <span className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#FF633C] animate-pulse" />
@@ -118,37 +118,37 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                 {language === 'mn' ? 'Хулганаар налуулж, дарж оч үсэргэх' : 'Drag draft or click to spark'}
               </div>
 
-              <div className="absolute inset-0 bg-radial from-[#FF633C]/25 via-transparent to-transparent rounded-[36px] -z-10 group-hover:from-[#FF633C]/45 transition-colors pointer-events-none" />
+              <div className="absolute inset-0 bg-radial from-[#FF633C]/25 via-transparent to-transparent rounded-[32px] sm:rounded-[36px] -z-10 group-hover:from-[#FF633C]/45 transition-colors pointer-events-none" />
             </div>
 
             {/* Giant Title with Apple-grade tight tracking */}
-            <h1 className="font-editorial text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white leading-[1.05] mb-4 text-balance">
+            <h1 className="font-editorial text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white leading-[1.05] mb-4 text-balance">
               FIREWATCH<br />
-              <span className="text-[#FF633C] font-mono text-3xl sm:text-4xl font-semibold">UB</span>
+              <span className="text-[#FF633C] font-mono text-2xl sm:text-4xl font-semibold">UB</span>
             </h1>
 
             {/* Editorial Tagline */}
-            <p className="font-editorial text-xl sm:text-2xl text-white/90 leading-snug font-normal mb-6 italic text-balance">
+            <p className="font-editorial text-lg sm:text-2xl text-white/90 leading-snug font-normal mb-6 italic text-balance">
               “{t.tagline}”
             </p>
 
             {/* Direction Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-white/80 text-xs font-mono tracking-wide mb-8 border border-white/10 backdrop-blur-md">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-white/80 text-xs font-mono tracking-wide mb-6 sm:mb-8 border border-white/10 backdrop-blur-md">
               <span className="w-1.5 h-1.5 rounded-full bg-[#12B89A]" />
-              <span>{t.directionPill}</span>
+              <span className="truncate">{t.directionPill}</span>
             </div>
 
             {/* Large Statistic Treatment */}
-            <div className="pt-6 border-t border-white/10">
+            <div className="pt-5 border-t border-white/10">
               <div className="flex items-baseline gap-2">
-                <span className="font-mono text-5xl sm:text-6xl font-bold tracking-tight text-white tabular-nums">
+                <span className="font-mono text-4xl sm:text-6xl font-bold tracking-tight text-white tabular-nums">
                   1,937
                 </span>
                 <span className="text-xs font-mono text-[#FF633C] uppercase tracking-wider font-semibold">
                   records
                 </span>
               </div>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex flex-wrap items-center gap-2 mt-1">
                 <p className="text-xs text-white/70">
                   {language === 'mn'
                     ? 'Шинжилгээнд хамруулсан орон зайн дуудлагын өгөгдөл'
@@ -166,7 +166,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
           </div>
 
           {/* Bottom Left Quick Meta */}
-          <div className="z-10 pt-4 flex items-center justify-between text-xs text-white/50 border-t border-white/10 font-mono">
+          <div className="z-10 pt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/50 border-t border-white/10 font-mono">
             <span>Ulaanbaatar · Mongolia</span>
             <span>Spatial Engine · Apple Grade</span>
           </div>
@@ -175,7 +175,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         {/* ========================================================= */}
         {/* RIGHT PANEL: White Storytelling & Interactive Mockup      */}
         {/* ========================================================= */}
-        <div className="lg:col-span-7 bg-[#FFFFFF] p-8 md:p-12 lg:p-14 flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-[#FFFFFF] p-5 sm:p-8 md:p-12 lg:p-14 flex flex-col justify-between overflow-hidden">
           <div>
             
             {/* Alert Header Icon + Problem Kicker */}
@@ -219,7 +219,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
             </div>
 
             {/* 4 Numbered Solution Blocks with Apple-grade card styling */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-8">
               {solutions.map((item, idx) => {
                 const isActive = activeSolutionIdx === idx;
                 return (
@@ -229,7 +229,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                       setActiveSolutionIdx(idx);
                       onSelectTab(item.tabTarget);
                     }}
-                    className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer text-left group ${
+                    className={`p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 cursor-pointer text-left group ${
                       isActive
                         ? 'border-[#FF633C] bg-orange-50/50 shadow-sm'
                         : 'border-black/[0.06] hover:border-black/20 hover:bg-[#F7F8FA] hover:-translate-y-0.5'
@@ -259,11 +259,11 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
 
           {/* Interactive Smartphone App Preview Frame */}
           <div className="pt-6 border-t border-black/[0.06]">
-            <div className="flex flex-col xl:flex-row items-center gap-6 bg-[#F7F8FA] p-6 rounded-3xl border border-black/[0.05]">
+            <div className="flex flex-col xl:flex-row items-center gap-6 bg-[#F7F8FA] p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-black/[0.05] w-full max-w-full overflow-hidden">
               
               {/* Phone Frame */}
-              <div className="w-[280px] sm:w-[300px] bg-[#0B124D] rounded-[40px] p-3 shadow-2xl ring-1 ring-black/10 shrink-0">
-                <div className="bg-white rounded-[32px] p-4 text-[#12152A] overflow-hidden flex flex-col justify-between min-h-[380px]">
+              <div className="w-full max-w-[260px] sm:max-w-[290px] bg-[#0B124D] rounded-[36px] sm:rounded-[40px] p-2.5 sm:p-3 shadow-2xl ring-1 ring-black/10 shrink-0 mx-auto xl:mx-0">
+                <div className="bg-white rounded-[28px] sm:rounded-[32px] p-3.5 sm:p-4 text-[#12152A] overflow-hidden flex flex-col justify-between min-h-[360px] sm:min-h-[380px]">
                   
                   {/* Phone Header */}
                   <div>
@@ -276,12 +276,12 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                     </div>
 
                     {/* Current Week Risk Indicator */}
-                    <div className="mt-3 bg-red-50 p-2.5 rounded-2xl border border-red-100">
+                    <div className="mt-2.5 sm:mt-3 bg-red-50 p-2 sm:p-2.5 rounded-2xl border border-red-100">
                       <span className="text-[10px] text-red-600 font-medium block">
                         {t.phoneBadgeWeek}
                       </span>
                       <div className="flex items-baseline justify-between mt-0.5">
-                        <span className="font-editorial text-lg font-bold text-[#E93B2F]">
+                        <span className="font-editorial text-base sm:text-lg font-bold text-[#E93B2F]">
                           {selectedMonth.riskLevel === 'very_high'
                             ? (language === 'mn' ? 'МАШ ӨНДӨР' : 'VERY HIGH')
                             : selectedMonth.riskLevel === 'high'
@@ -295,7 +295,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                     </div>
 
                     {/* 12-Month Mini Calendar Strip */}
-                    <div className="mt-3">
+                    <div className="mt-2.5 sm:mt-3">
                       <span className="text-[10px] font-semibold text-slate-500 block mb-1.5">
                         {t.phoneCalendarTitle} ({selectedMonth.nameMn})
                       </span>
@@ -324,25 +324,25 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                   </div>
 
                   {/* 3 Preventive Steps */}
-                  <div className="mt-3 pt-2 border-t border-slate-100">
+                  <div className="mt-2.5 sm:mt-3 pt-2 border-t border-slate-100">
                     <span className="text-[10px] font-semibold text-slate-500 block mb-1.5">
                       {t.phoneStepsTitle}
                     </span>
                     <div className="space-y-1 text-[11px]">
                       <div className="flex items-center gap-1.5 text-slate-700">
-                        <span className="w-3.5 h-3.5 rounded-full bg-[#FF633C] text-white text-[9px] font-mono flex items-center justify-center font-bold">
+                        <span className="w-3.5 h-3.5 rounded-full bg-[#FF633C] text-white text-[9px] font-mono flex items-center justify-center font-bold shrink-0">
                           1
                         </span>
                         <span className="truncate">{t.phoneStep1}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-slate-700">
-                        <span className="w-3.5 h-3.5 rounded-full bg-[#FF633C] text-white text-[9px] font-mono flex items-center justify-center font-bold">
+                        <span className="w-3.5 h-3.5 rounded-full bg-[#FF633C] text-white text-[9px] font-mono flex items-center justify-center font-bold shrink-0">
                           2
                         </span>
                         <span className="truncate">{t.phoneStep2}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-slate-700">
-                        <span className="w-3.5 h-3.5 rounded-full bg-[#FF633C] text-white text-[9px] font-mono flex items-center justify-center font-bold">
+                        <span className="w-3.5 h-3.5 rounded-full bg-[#FF633C] text-white text-[9px] font-mono flex items-center justify-center font-bold shrink-0">
                           3
                         </span>
                         <span className="truncate">{t.phoneStep3}</span>
@@ -353,7 +353,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                   {/* Mini Map preview button */}
                   <button
                     onClick={onExploreMap}
-                    className="w-full mt-3 py-2 text-[11px] font-bold text-center bg-[#0B124D] hover:bg-[#11166B] text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"
+                    className="w-full mt-2.5 sm:mt-3 py-2 text-[11px] font-bold text-center bg-[#0B124D] hover:bg-[#11166B] text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"
                   >
                     <span>{t.viewRiskMap}</span>
                     <span>→</span>
@@ -362,7 +362,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
               </div>
 
               {/* Story Description & Action buttons */}
-              <div className="flex-1 text-left">
+              <div className="flex-1 text-left w-full min-w-0">
                 <span className="text-xs font-mono font-bold text-[#FF633C] uppercase tracking-wider block mb-1">
                   {language === 'mn' ? 'ИРГЭНД ЧИГЛЭСЭН ТЕХНОЛОГИ' : 'HUMAN-CENTERED INTELLIGENCE'}
                 </span>
@@ -377,25 +377,25 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                     : 'Track seasonal heating shifts, wind desiccation, and station coverage buffers seamlessly.'}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={onExploreMap}
-                    className="px-5 py-2.5 text-xs font-bold text-white bg-[#FF633C] hover:bg-[#e05430] rounded-xl transition-all shadow-md shadow-[#FF633C]/20 flex items-center gap-2 active:scale-95"
+                    className="px-4 sm:px-5 py-2 sm:py-2.5 text-xs font-bold text-white bg-[#FF633C] hover:bg-[#e05430] rounded-xl transition-all shadow-md shadow-[#FF633C]/20 flex items-center gap-1.5 active:scale-95"
                   >
                     <span>{t.ctaButton}</span>
                     <span>→</span>
                   </button>
                   <button
                     onClick={() => onSelectTab('personal')}
-                    className="px-4 py-2.5 text-xs font-bold text-[#0B124D] bg-[#0B124D]/8 hover:bg-[#0B124D]/15 rounded-xl transition-all flex items-center gap-1.5 active:scale-95"
+                    className="px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-bold text-[#0B124D] bg-[#0B124D]/8 hover:bg-[#0B124D]/15 rounded-xl transition-all flex items-center gap-1.5 active:scale-95"
                   >
                     <span>👤</span>
-                    <span>{language === 'mn' ? 'Хувийн орон сууц шалгах' : 'Personal Home Audit'}</span>
+                    <span>{language === 'mn' ? 'Хувийн сууц' : 'Home Audit'}</span>
                   </button>
                   {onOpenFamilyMode && (
                     <button
                       onClick={onOpenFamilyMode}
-                      className="px-4 py-2.5 text-xs font-semibold text-amber-900 bg-amber-500/15 hover:bg-amber-500/25 rounded-xl transition-colors border border-amber-500/20 flex items-center gap-1.5"
+                      className="px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-amber-900 bg-amber-500/15 hover:bg-amber-500/25 rounded-xl transition-colors border border-amber-500/20 flex items-center gap-1.5"
                     >
                       <span>🏡</span>
                       <span>{language === 'mn' ? 'Гэр бүл' : 'Family'}</span>

@@ -202,30 +202,32 @@ export const ReportCenter: React.FC<ReportCenterProps> = ({ language }) => {
               <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-[#0B124D] mb-3">
                 02 · {language === 'mn' ? 'ДҮҮРГҮҮДИЙН НЭГДСЭН ХҮСНЭГТ' : 'DISTRICT SUMMARY MATRIX'}
               </h3>
-              <table className="w-full text-left text-xs border border-slate-200">
-                <thead>
-                  <tr className="bg-slate-100 font-mono text-[#72778A]">
-                    <th className="p-2 border">{language === 'mn' ? 'Дүүрэг' : 'District'}</th>
-                    <th className="p-2 border">{language === 'mn' ? 'Хүн ам' : 'Pop'}</th>
-                    <th className="p-2 border">{language === 'mn' ? 'Гэр %' : 'Ger %'}</th>
-                    <th className="p-2 border">{language === 'mn' ? 'Ойрын анги' : 'Station'}</th>
-                    <th className="p-2 border">{language === 'mn' ? 'Зам' : 'Road'}</th>
-                    <th className="p-2 border font-bold text-[#0B124D]">{language === 'mn' ? 'Индекс' : 'Score'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {UB_DISTRICTS.map((d) => (
-                    <tr key={d.id} className="border-b">
-                      <td className="p-2 border font-bold">{language === 'mn' ? d.nameMn : d.nameEn}</td>
-                      <td className="p-2 border font-mono">{d.population.toLocaleString()}</td>
-                      <td className="p-2 border font-mono">{d.gerHouseholdPercent}%</td>
-                      <td className="p-2 border font-mono">~{d.nearestStationDistKm} км</td>
-                      <td className="p-2 border font-mono">{d.roadAccessibilityGrade}</td>
-                      <td className="p-2 border font-mono font-bold text-[#FF633C]">{d.riskScore}/100</td>
+              <div className="overflow-x-auto w-full scrollbar-none rounded-xl border border-slate-200">
+                <table className="w-full text-left text-xs min-w-[500px]">
+                  <thead>
+                    <tr className="bg-slate-100 font-mono text-[#72778A]">
+                      <th className="p-2 border-b border-r border-slate-200">{language === 'mn' ? 'Дүүрэг' : 'District'}</th>
+                      <th className="p-2 border-b border-r border-slate-200">{language === 'mn' ? 'Хүн ам' : 'Pop'}</th>
+                      <th className="p-2 border-b border-r border-slate-200">{language === 'mn' ? 'Гэр %' : 'Ger %'}</th>
+                      <th className="p-2 border-b border-r border-slate-200">{language === 'mn' ? 'Ойрын анги' : 'Station'}</th>
+                      <th className="p-2 border-b border-r border-slate-200">{language === 'mn' ? 'Зам' : 'Road'}</th>
+                      <th className="p-2 border-b font-bold text-[#0B124D]">{language === 'mn' ? 'Индекс' : 'Score'}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {UB_DISTRICTS.map((d) => (
+                      <tr key={d.id} className="border-b border-slate-100 hover:bg-slate-50/50">
+                        <td className="p-2 border-r border-slate-100 font-bold">{language === 'mn' ? d.nameMn : d.nameEn}</td>
+                        <td className="p-2 border-r border-slate-100 font-mono">{d.population.toLocaleString()}</td>
+                        <td className="p-2 border-r border-slate-100 font-mono">{d.gerHouseholdPercent}%</td>
+                        <td className="p-2 border-r border-slate-100 font-mono">~{d.nearestStationDistKm} км</td>
+                        <td className="p-2 border-r border-slate-100 font-mono">{d.roadAccessibilityGrade}</td>
+                        <td className="p-2 font-mono font-bold text-[#FF633C]">{d.riskScore}/100</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 

@@ -56,9 +56,9 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
     <div className="w-full max-w-4xl mx-auto my-6 p-4 sm:p-6 lg:p-8 bg-white/90 backdrop-blur-2xl rounded-[32px] border border-black/[0.06] shadow-[0_20px_50px_rgba(11,18,77,0.08)]">
       
       {/* Top Banner / Navigation */}
-      <div className="flex items-center justify-between pb-6 border-b border-black/[0.06]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-black/[0.06]">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-2xl">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-2xl shrink-0">
             🏡
           </div>
           <div>
@@ -75,10 +75,10 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
         </div>
 
         {/* Audio Speech Button */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
             onClick={handleSpeakStatus}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-semibold flex items-center gap-2 transition-all shadow-xs ${
+            className={`px-4 py-2.5 rounded-2xl text-xs font-semibold flex items-center gap-2 transition-all shadow-xs min-h-[44px] ${
               isSpeaking
                 ? 'bg-[#FF633C] text-white animate-pulse'
                 : 'bg-[#0B124D]/5 hover:bg-[#0B124D]/10 text-[#0B124D]'
@@ -90,7 +90,7 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold"
+              className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold min-h-[44px] min-w-[44px]"
             >
               ✕
             </button>
@@ -99,16 +99,16 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
       </div>
 
       {/* Giant Traffic Light Status (Zero-confusion for all ages) */}
-      <div className="my-8 p-6 sm:p-8 rounded-[28px] bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/80 flex flex-col sm:flex-row items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className="w-20 h-20 rounded-3xl bg-amber-500 text-white flex items-center justify-center text-4xl shadow-lg shadow-amber-500/25 shrink-0">
+      <div className="my-6 sm:my-8 p-4 sm:p-8 rounded-2xl sm:rounded-[28px] bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 sm:gap-5 w-full sm:w-auto">
+          <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-amber-500 text-white flex items-center justify-center text-3xl sm:text-4xl shadow-lg shadow-amber-500/25 shrink-0">
             🟡
           </div>
           <div>
             <span className="text-xs font-mono uppercase tracking-widest text-amber-800 font-bold">
               {language === 'mn' ? 'ӨНӨӨДРИЙН ЕРӨНХИЙ БАЙДАЛ' : 'TODAYS STATUS'}
             </span>
-            <h3 className="font-editorial text-2xl sm:text-3xl font-bold text-amber-950 mt-0.5">
+            <h3 className="font-editorial text-xl sm:text-3xl font-bold text-amber-950 mt-0.5">
               {language === 'mn' ? 'ШАР ТҮВШИН · СЭРЭМЖТЭЙ БАЙХ' : 'YELLOW · MODERATE CAUTION'}
             </h3>
             <p className="text-xs sm:text-sm text-amber-900/80 mt-1 max-w-md">
@@ -254,9 +254,9 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
 
       {/* Completion Banner */}
       {allChecked && (
-        <div className="mt-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between text-xs animate-in fade-in duration-300">
+        <div className="mt-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-in fade-in duration-300">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🌟</span>
+            <span className="text-lg shrink-0">🌟</span>
             <span className="font-bold">
               {language === 'mn'
                 ? 'Баяр хүргэе! Та өнөөдрийн 3 чухал шалгалтыг амжилттай хийлээ. Гэр бүл тань аюулгүй тайван амраарай.'

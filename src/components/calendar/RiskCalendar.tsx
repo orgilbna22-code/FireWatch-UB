@@ -34,8 +34,8 @@ export const RiskCalendar: React.FC<RiskCalendarProps> = ({ language }) => {
           </p>
         </div>
 
-        {/* 12 Month Tiles Grid (Inspired by the Phone Mockup in Reference) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12 gap-3">
+        {/* 12 Month Tiles Grid */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12 gap-2 sm:gap-3">
           {MONTH_RISK_CALENDAR.map((m, idx) => {
             const isSelected = selectedMonthIndex === idx;
             const isVeryHigh = m.riskScore >= 80;
@@ -45,18 +45,18 @@ export const RiskCalendar: React.FC<RiskCalendarProps> = ({ language }) => {
               <button
                 key={m.month}
                 onClick={() => setSelectedMonthIndex(idx)}
-                className={`p-4 rounded-2xl text-left transition-all relative overflow-hidden group cursor-pointer ${
+                className={`p-2.5 sm:p-4 rounded-xl sm:rounded-2xl text-left transition-all relative overflow-hidden group cursor-pointer ${
                   isSelected
                     ? 'bg-[#0B124D] text-white shadow-lg shadow-[#0B124D]/20 ring-2 ring-[#FF633C]'
                     : 'bg-white text-[#12152A] border border-[#0B124D]/8 hover:border-[#0B124D]/25'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-mono font-bold">
+                <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                  <span className="text-[11px] sm:text-xs font-mono font-bold truncate">
                     {language === 'mn' ? m.shortMn : m.shortEn}
                   </span>
                   <span
-                    className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                    className={`text-[9px] sm:text-[10px] font-mono font-bold px-1 sm:px-1.5 py-0.5 rounded shrink-0 ml-1 ${
                       isSelected
                         ? 'bg-white/20 text-white'
                         : isVeryHigh
@@ -106,7 +106,7 @@ export const RiskCalendar: React.FC<RiskCalendarProps> = ({ language }) => {
                 </h2>
               </div>
 
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <span className="text-[10px] font-mono text-[#72778A] uppercase block">
                   {language === 'mn' ? 'ЭРСДЭЛИЙН АНАЛИТИК ҮЗҮҮЛЭЛТ' : 'SEASONAL RISK INDICATOR'}
                 </span>

@@ -35,7 +35,7 @@ export const EmergencyCoverage: React.FC<EmergencyCoverageProps> = ({
           {onNavigateToMap && (
             <button
               onClick={onNavigateToMap}
-              className="px-4 py-2.5 bg-[#0B124D] hover:bg-[#11166B] text-white text-xs font-bold rounded-xl transition-colors whitespace-nowrap shadow-xs"
+              className="w-full sm:w-auto px-4 py-2.5 bg-[#0B124D] hover:bg-[#11166B] text-white text-xs font-bold rounded-xl transition-colors whitespace-nowrap shadow-xs text-center"
             >
               {language === 'mn' ? 'Газрын зураг дээр харах' : 'View on GIS Map'} →
             </button>

@@ -101,7 +101,7 @@ export const RiskExplorer: React.FC<RiskExplorerProps> = ({
           </div>
 
           {/* Action Buttons: RESET, COMPARE, METHODOLOGY */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleReset}
               className="px-3.5 py-2 text-xs font-mono font-bold text-[#72778A] hover:text-[#0B124D] bg-white rounded-xl border border-[#0B124D]/10 hover:bg-slate-50 transition-colors shadow-xs"

@@ -13,6 +13,7 @@ interface HeaderProps {
   onOpenDemoInfo: () => void;
   onToggleFamilyMode?: () => void;
   isFamilyModeOpen?: boolean;
+  onOpenMobileMenu?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenDemoInfo,
   onToggleFamilyMode,
   isFamilyModeOpen,
+  onOpenMobileMenu,
 }) => {
   const t = getTranslation(language);
   const [soundOn, setSoundOn] = useState(false);
@@ -54,32 +56,32 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-2xl border-b border-black/[0.06] px-4 sm:px-6 lg:px-8 py-3 transition-all duration-300">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-2xl border-b border-black/[0.06] px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 transition-all duration-300">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
         
         {/* Zone 1: Single text element wordmark + Apple-style subtle flame */}
         <button
           onClick={() => setActiveTab('landing')}
-          className="flex items-center gap-2.5 group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF633C] rounded-2xl p-1 -ml-1 transition-transform active:scale-95"
+          className="flex items-center gap-2 group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF633C] rounded-2xl p-1 -ml-1 transition-transform active:scale-95 shrink-0"
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0B124D] to-[#11166B] flex items-center justify-center text-white shrink-0 shadow-sm shadow-[#0B124D]/20 group-hover:scale-105 transition-all">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-[#0B124D] to-[#11166B] flex items-center justify-center text-white shrink-0 shadow-sm shadow-[#0B124D]/20 group-hover:scale-105 transition-all">
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="#FF633C"
               strokeWidth="2.4"
-              className="w-4 h-4"
+              className="w-3.5 h-3.5 sm:w-4 sm:h-4"
             >
               <path d="M12 2C8 6 6 9 6 13a6 6 0 0 0 12 0c0-4-2-7-6-11z" />
               <path d="M12 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" fill="#FFFFFF" stroke="none" />
             </svg>
           </div>
-          <span className="font-editorial text-xl font-bold tracking-tight text-[#0B124D]">
+          <span className="font-editorial text-lg sm:text-xl font-bold tracking-tight text-[#0B124D] whitespace-nowrap">
             FIREWATCH<span className="text-[#FF633C] font-mono text-xs ml-1 font-semibold tracking-normal">UB</span>
           </span>
         </button>
 
-        {/* Zone 2: 4-6 clean text navigation links with smooth hover and active state */}
+        {/* Zone 2: 4-6 clean text navigation links with smooth hover and active state (Desktop Only) */}
         <nav className="hidden lg:flex items-center gap-1 bg-[#F7F8FA]/90 p-1 rounded-full border border-black/[0.04]">
           {mainNavItems.map((item) => {
             const isActive = activeTab === item.id;
@@ -124,13 +126,13 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </nav>
 
-        {/* Zone 3: Actions - Personal Chip, Family Mode, Sound, Language & Primary CTA */}
-        <div className="flex items-center gap-2">
+        {/* Zone 3: Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           
-          {/* Personal Profile & Creator Chip */}
+          {/* Desktop Only: Personal Profile & Creator Chip */}
           <button
             onClick={() => setActiveTab('personal')}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+            className={`hidden sm:flex px-3 py-1.5 rounded-full text-xs font-semibold items-center gap-1.5 transition-all ${
               activeTab === 'personal'
                 ? 'bg-[#0B124D] text-white shadow-sm ring-2 ring-[#FF633C]/40'
                 : 'bg-[#0B124D]/5 text-[#0B124D] hover:bg-[#0B124D]/10'
@@ -140,16 +142,16 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="w-4 h-4 rounded-full bg-[#FF633C] text-white flex items-center justify-center font-bold text-[9px]">
               O
             </span>
-            <span className="hidden sm:inline font-bold">
+            <span className="font-bold">
               {language === 'mn' ? 'Хувийн' : 'Personal'}
             </span>
           </button>
 
-          {/* Family & Elder Quick Mode Button */}
+          {/* Desktop Only: Family & Elder Quick Mode Button */}
           {onToggleFamilyMode && (
             <button
               onClick={onToggleFamilyMode}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`hidden md:flex px-3 py-1.5 rounded-full text-xs font-semibold items-center gap-1.5 transition-all ${
                 isFamilyModeOpen
                   ? 'bg-amber-500 text-white shadow-sm'
                   : 'bg-amber-500/10 text-amber-900 hover:bg-amber-500/20'
@@ -157,8 +159,8 @@ export const Header: React.FC<HeaderProps> = ({
               title="Хүүхэд, ахмадуудад зориулсан хялбаршуулсан төлөв"
             >
               <span>🏡</span>
-              <span className="hidden sm:inline">
-                {language === 'mn' ? 'Гэр бүлийн горим' : 'Family Mode'}
+              <span>
+                {language === 'mn' ? 'Гэр бүл' : 'Family'}
               </span>
             </button>
           )}
@@ -166,12 +168,13 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Audio Ambient Fireplace Toggle */}
           <button
             onClick={toggleSound}
-            className={`p-2 rounded-full text-xs transition-all ${
+            className={`p-2 rounded-full text-xs min-w-[36px] min-h-[36px] flex items-center justify-center transition-all ${
               soundOn
                 ? 'bg-[#FF633C]/10 text-[#FF633C]'
                 : 'text-[#72778A] hover:text-[#0B124D] hover:bg-black/5'
             }`}
             title={soundOn ? 'Галын намуун чимээг хаах' : 'Галын намуун чимээ асаах'}
+            aria-label="Галын чимээ асаах/унтраах"
           >
             {soundOn ? '🔥' : '🔇'}
           </button>
@@ -179,19 +182,36 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Language Switcher */}
           <button
             onClick={() => setLanguage(language === 'mn' ? 'en' : 'mn')}
-            className="px-2.5 py-1 text-xs font-mono font-bold text-[#0B124D] hover:bg-[#0B124D]/5 rounded-full transition-colors border border-black/[0.08]"
+            className="px-2.5 py-1 min-h-[36px] text-xs font-mono font-bold text-[#0B124D] hover:bg-[#0B124D]/5 rounded-full transition-colors border border-black/[0.08] flex items-center justify-center"
             aria-label="Toggle language"
           >
             {language === 'mn' ? 'EN' : 'MN'}
           </button>
 
-          {/* Primary CTA (View Map) */}
+          {/* Primary CTA (View Map - Desktop only so header fits on mobile) */}
           <button
             onClick={() => setActiveTab('map')}
-            className="px-4 py-1.5 text-xs font-semibold text-white bg-[#0B124D] hover:bg-[#11166B] rounded-full transition-all shadow-sm active:scale-95 whitespace-nowrap"
+            className={`hidden sm:flex px-4 py-1.5 text-xs font-semibold rounded-full transition-all shadow-sm active:scale-95 whitespace-nowrap min-h-[36px] items-center justify-center ${
+              activeTab === 'map'
+                ? 'bg-[#FF633C] text-white ring-2 ring-[#FF633C]/40'
+                : 'bg-[#0B124D] hover:bg-[#11166B] text-white'
+            }`}
           >
-            {t.viewRiskMap}
+            <span>{t.viewRiskMap}</span>
           </button>
+
+          {/* Mobile Menu Trigger Button (Always visible on mobile) */}
+          {onOpenMobileMenu && (
+            <button
+              onClick={onOpenMobileMenu}
+              className="lg:hidden w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0B124D] flex items-center justify-center transition-colors text-lg font-bold shrink-0 shadow-xs"
+              aria-label="Цэс нээх"
+              title="Бүх цэс нээх"
+            >
+              ☰
+            </button>
+          )}
+
         </div>
 
       </div>

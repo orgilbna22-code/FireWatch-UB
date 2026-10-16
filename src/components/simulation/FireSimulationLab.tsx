@@ -41,11 +41,11 @@ export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto my-8 p-4 sm:p-6 lg:p-8">
-      <div className="bg-white/80 backdrop-blur-2xl rounded-[36px] border border-black/[0.06] shadow-[0_24px_60px_rgba(11,18,77,0.08)] p-6 sm:p-10 overflow-hidden">
+    <div className="w-full max-w-7xl mx-auto my-4 sm:my-8 p-2 sm:p-6 lg:p-8">
+      <div className="bg-white/80 backdrop-blur-2xl rounded-3xl sm:rounded-[36px] border border-black/[0.06] shadow-[0_24px_60px_rgba(11,18,77,0.08)] p-4 sm:p-8 lg:p-10 overflow-hidden">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-8 border-b border-black/[0.06]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 sm:pb-8 border-b border-black/[0.06]">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-xs font-mono font-bold tracking-widest text-[#FF633C] uppercase">
@@ -80,10 +80,10 @@ export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
         </div>
 
         {/* 2-Column Lab Layout: Flame Stage & Sensitivity Sliders */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-8 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 my-6 sm:my-8 items-center">
           
           {/* Left: Interactive Flame Showcase Stage (5 cols) */}
-          <div className="lg:col-span-5 bg-gradient-to-b from-[#0B124D] to-[#060927] rounded-[32px] p-8 text-white text-center flex flex-col items-center justify-between min-h-[420px] relative overflow-hidden shadow-2xl">
+          <div className="lg:col-span-5 bg-gradient-to-b from-[#0B124D] to-[#060927] rounded-2xl sm:rounded-[32px] p-4 sm:p-8 text-white text-center flex flex-col items-center justify-between min-h-[380px] sm:min-h-[420px] relative overflow-hidden shadow-2xl">
             {/* Ambient Fire Glow Background */}
             <AmbientFireBackground intensity={1.2} />
 
@@ -117,12 +117,12 @@ export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
             </div>
 
             {/* Spark Distance Gauge */}
-            <div className="z-10 w-full p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-between text-xs">
+            <div className="z-10 w-full p-3.5 sm:p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-between text-xs gap-3">
               <div className="text-left">
                 <span className="text-[10px] text-white/60 block font-mono">
                   {language === 'mn' ? 'Оч үсрэх аюултай зай' : 'Simulated Spark Drift'}
                 </span>
-                <span className="font-mono text-xl font-bold text-[#FF633C]">
+                <span className="font-mono text-lg sm:text-xl font-bold text-[#FF633C]">
                   ~{sparkDriftMeters} метр
                 </span>
               </div>
@@ -130,7 +130,7 @@ export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
                 <span className="text-[10px] text-white/60 block font-mono">
                   {language === 'mn' ? 'Дэгдэлтийн индекс' : 'Spread Index'}
                 </span>
-                <span className="font-mono text-xl font-bold text-white">
+                <span className="font-mono text-lg sm:text-xl font-bold text-white">
                   {simulatedIndex} / 100
                 </span>
               </div>
