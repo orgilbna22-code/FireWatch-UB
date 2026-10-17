@@ -9,6 +9,36 @@ interface PersonalPortalProps {
   onSelectDistrict?: (districtId: string) => void;
 }
 
+const CO_CREATORS = [
+  {
+    nameMn: 'Түмэнхүслэн',
+    nameEn: 'TumenHuslen',
+    initialMn: 'Т',
+    initialEn: 'T',
+    roleMn: 'UI/UX дизайн',
+    roleEn: 'UI/UX Design',
+    tone: 'bg-[#0B124D]',
+  },
+  {
+    nameMn: 'Индра',
+    nameEn: 'Indra',
+    initialMn: 'И',
+    initialEn: 'I',
+    roleMn: 'Математик суурь',
+    roleEn: 'Math Base',
+    tone: 'bg-[#FF633C]',
+  },
+  {
+    nameMn: 'Цолмон',
+    nameEn: 'Tsolmon',
+    initialMn: 'Ц',
+    initialEn: 'T',
+    roleMn: 'Дата судалгаа',
+    roleEn: 'Data Research',
+    tone: 'bg-[#12B89A]',
+  },
+];
+
 export const PersonalPortal: React.FC<PersonalPortalProps> = ({
   language,
   onExploreMap,
@@ -210,7 +240,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
               onClick={() => setActiveSubTab('home_audit')}
               className={`px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm min-h-[44px] ${
                 activeSubTab === 'home_audit'
-                  ? 'bg-white text-[#0B124D] shadow-md scale-102'
+                  ? 'bg-white text-[#0B124D] shadow-md scale-[1.02]'
                   : 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
               }`}
             >
@@ -222,7 +252,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
               onClick={() => setActiveSubTab('creator_profile')}
               className={`px-4 sm:px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm min-h-[44px] ${
                 activeSubTab === 'creator_profile'
-                  ? 'bg-[#FF633C] text-white shadow-md scale-102'
+                  ? 'bg-[#FF633C] text-white shadow-md scale-[1.02]'
                   : 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
               }`}
             >
@@ -498,7 +528,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                   <span className={`px-2.5 py-0.5 rounded-full font-mono text-xs font-bold ${
                     personalRisk.score >= 75 ? 'bg-red-500 text-white' :
                     personalRisk.score >= 55 ? 'bg-[#FF633C] text-white' :
-                    'bg-[#12B89A] text-white'
+                    'bg-[#12B89A] text-[#0B124D]'
                   }`}>
                     {personalRisk.score >= 75 ? 'Маш өндөр эрсдэлтэй' :
                      personalRisk.score >= 55 ? 'Өндөр эрсдэлтэй' : 'Дунд эрсдэлтэй'}
@@ -627,7 +657,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
         {/* SUB-TAB 2: CREATOR PROFILE & PERSONAL PORTFOLIO (ORGIL)                   */}
         {/* ========================================================================= */}
         {activeSubTab === 'creator_profile' && (
-          <div className="space-y-8 animate-in fade-in duration-300">
+          <div className="space-y-8 animate-fade-in">
             
             {/* Developer Hero Card */}
             <div className="bg-white p-8 sm:p-12 rounded-3xl border border-black/[0.06] shadow-sm flex flex-col md:flex-row items-center gap-8">
@@ -679,6 +709,38 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
 
             </div>
 
+            {/* Co-Creators (Student Team) */}
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-black/[0.06] shadow-xs">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#12B89A] font-bold block mb-1">
+                {language === 'mn' ? 'ХАМТРАН БҮТЭЭГЧИД' : 'CO-CREATORS'}
+              </span>
+              <h3 className="font-editorial text-xl sm:text-2xl font-bold text-[#0B124D] mb-5">
+                {language === 'mn' ? 'Төслийн хамтран зохиогчид' : 'Project Co-Authors'}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {CO_CREATORS.map((c) => (
+                  <div
+                    key={c.nameEn}
+                    className="flex items-center gap-4 p-4 rounded-2xl bg-[#F7F8FA] border border-black/[0.05] hover:border-[#12B89A]/50 transition-all"
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-2xl ${c.tone} text-white flex items-center justify-center font-editorial text-2xl font-bold shrink-0 shadow-sm`}
+                    >
+                      {language === 'mn' ? c.initialMn : c.initialEn}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm text-[#0B124D] truncate">
+                        {language === 'mn' ? c.nameMn : c.nameEn}
+                      </div>
+                      <div className="text-[11px] font-mono text-[#72778A]">
+                        {language === 'mn' ? c.roleMn : c.roleEn}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Project Showcase & Architecture Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
@@ -724,7 +786,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
               </div>
 
               <div className="p-6 rounded-3xl bg-white border border-black/[0.06] shadow-xs space-y-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#12B89A] text-white flex items-center justify-center font-mono text-sm font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-[#12B89A] text-[#0B124D] flex items-center justify-center font-mono text-sm font-bold">
                   03
                 </div>
                 <h3 className="font-editorial text-xl font-bold text-[#0B124D]">

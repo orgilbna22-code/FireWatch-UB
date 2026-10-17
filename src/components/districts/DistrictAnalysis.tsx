@@ -73,7 +73,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                 onClick={() => setSelectedDistrictId(d.id)}
                 className={`px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
                   isSelected
-                    ? 'bg-[#0B124D] text-white shadow-md scale-102'
+                    ? 'bg-[#0B124D] text-white shadow-md scale-[1.02]'
                     : 'bg-white text-[#72778A] hover:text-[#0B124D] border border-black/[0.06] hover:border-[#0B124D]/20'
                 }`}
               >
@@ -387,7 +387,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                 onClick={() => setKhorooFilter('apt')}
                 className={`px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap shrink-0 transition-all ${
                   khorooFilter === 'apt'
-                    ? 'bg-[#12B89A] text-white shadow-xs'
+                    ? 'bg-[#12B89A] text-[#0B124D] shadow-xs'
                     : 'text-[#72778A] hover:text-[#0B124D]'
                 }`}
               >
@@ -402,7 +402,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
               const badgeClass =
                 kh.riskScore >= 75 ? 'bg-red-500 text-white' :
                 kh.riskScore >= 55 ? 'bg-[#FF633C] text-white' :
-                'bg-[#12B89A] text-white';
+                'bg-[#12B89A] text-[#0B124D]';
 
               return (
                 <div

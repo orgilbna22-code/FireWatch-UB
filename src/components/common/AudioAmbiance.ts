@@ -2,6 +2,12 @@
  * Synthesizes subtle ambient fire crackle and gentle breeze acoustics
  * using the Web Audio API. 100% self-contained with no external media files.
  */
+import { useSyncExternalStore } from 'react';
+
+type SoundListener = () => void;
+const soundListeners = new Set<SoundListener>();
+const notifySoundListeners = () => soundListeners.forEach((l) => l());
+
 class FireSoundEngine {
   private ctx: AudioContext | null = null;
   private isRunning: boolean = false;
@@ -25,7 +31,7 @@ class FireSoundEngine {
       return false;
     } else {
       this.start();
-      return true;
+      return this.isRunning;
     }
   }
 
@@ -102,6 +108,8 @@ class FireSoundEngine {
     } catch (e) {
       console.warn('Audio ambient engine initialization prevented by browser autoplay policy:', e);
       this.isRunning = false;
+    } finally {
+      notifySoundListeners();
     }
   }
 
@@ -128,11 +136,27 @@ class FireSoundEngine {
       }
       this.gainNode = null;
     }
+    notifySoundListeners();
   }
 
-  public getStatus(): boolean {
+  // Stable arrow properties so useSyncExternalStore never re-subscribes
+  public subscribe = (listener: SoundListener): (() => void) => {
+    soundListeners.add(listener);
+    return () => {
+      soundListeners.delete(listener);
+    };
+  };
+
+  public getStatus = (): boolean => {
     return this.isRunning;
-  }
+  };
 }
 
 export const soundEngine = new FireSoundEngine();
+
+/**
+ * Single source of truth for the fireplace sound state.
+ * Every toggle (Header, MobileMenuDrawer, FireSimulationLab) stays in sync.
+ */
+export const useSoundStatus = (): boolean =>
+  useSyncExternalStore(soundEngine.subscribe, soundEngine.getStatus, soundEngine.getStatus);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ActiveTab, Language } from '../../types';
-import { soundEngine } from './AudioAmbiance';
+import { ActiveTab, Language, Theme } from '../../types';
+import { soundEngine, useSoundStatus } from './AudioAmbiance';
 
 interface MobileMenuDrawerProps {
   isOpen: boolean;
@@ -13,8 +13,8 @@ interface MobileMenuDrawerProps {
   onOpenSources: () => void;
   onToggleFamilyMode: () => void;
   isFamilyModeOpen: boolean;
-  soundOn: boolean;
-  onToggleSound: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
 }
 
 export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
@@ -27,10 +27,11 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
   onOpenSources,
   onToggleFamilyMode,
   isFamilyModeOpen,
-  soundOn,
-  onToggleSound,
+  theme,
+  onToggleTheme,
 }) => {
   const isMn = language === 'mn';
+  const soundOn = useSoundStatus();
 
   const selectTab = (tab: ActiveTab) => {
     setActiveTab(tab);
@@ -127,7 +128,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
 
               {/* Sound Ambiance */}
               <button
-                onClick={onToggleSound}
+                onClick={() => soundEngine.toggle()}
                 className={`py-2 px-2 rounded-xl border font-bold flex items-center justify-center gap-1.5 transition-colors ${
                   soundOn
                     ? 'bg-[#FF633C]/10 border-[#FF633C]/40 text-[#FF633C]'
@@ -147,6 +148,32 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
                 <span>101</span>
               </a>
             </div>
+
+            {/* Night Mode Toggle Row */}
+            <button
+              onClick={onToggleTheme}
+              className={`w-full mx-3 px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-colors ${
+                theme === 'dark'
+                  ? 'bg-[#0B124D] text-white border-[#0B124D]'
+                  : 'bg-[#F7F8FA] border-black/[0.08] text-[#0B124D] hover:bg-slate-100'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+                <span>{isMn ? (theme === 'dark' ? 'Шөнийн горим асаалттай' : 'Шөнийн горим') : (theme === 'dark' ? 'Night mode on' : 'Night mode')}</span>
+              </span>
+              <span
+                className={`w-9 h-5 rounded-full relative transition-colors ${
+                  theme === 'dark' ? 'bg-[#FF633C]' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${
+                    theme === 'dark' ? 'left-[18px]' : 'left-0.5'
+                  }`}
+                />
+              </span>
+            </button>
 
             {/* Scrollable Navigation Body */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
@@ -174,7 +201,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
                   </div>
                 </div>
                 <span className="text-xs font-bold">
-                  {isFamilyModeOpen ? 'Нээлттэй' : 'Нээх →'}
+                  {isFamilyModeOpen ? (isMn ? 'Нээлттэй' : 'Open') : (isMn ? 'Нээх →' : 'Open →')}
                 </span>
               </div>
 

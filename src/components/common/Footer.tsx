@@ -103,7 +103,14 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <span className="text-white/40 block pt-2 text-[11px]">
-                  ОБЕГ Онцгой байдлын утас: <b className="text-white font-mono">101, 105</b>
+                  ОБЕГ Онцгой байдлын утас:{' '}
+                  <a href="tel:101" className="text-white font-mono hover:text-[#FF633C] transition-colors">
+                    101
+                  </a>
+                  ,{' '}
+                  <a href="tel:105" className="text-white font-mono hover:text-[#FF633C] transition-colors">
+                    105
+                  </a>
                 </span>
               </li>
             </ul>

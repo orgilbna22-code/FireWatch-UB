@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useId, useRef } from 'react';
 
 interface FireAnimationProps {
   intensity?: 'low' | 'moderate' | 'high' | 'extreme';
@@ -20,10 +20,29 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
   onSparkBurst,
 }) => {
   const [currentIntensity, setCurrentIntensity] = useState(intensity);
-  const [mouseDraft, setMouseDraft] = useState(0);
-  const [clickFlutter, setClickFlutter] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const swayRef = useRef<HTMLDivElement | null>(null);
+  const haloRef = useRef<HTMLDivElement | null>(null);
+  // Mirror mouseDraft in a ref so the canvas loop and sway transform read live
+  // values without restarting the rAF loop / re-rendering on every mousemove
+  const mouseDraftRef = useRef(0);
+  const clickFlutterRef = useRef(false);
+  const uid = useId().replace(/:/g, '');
+
+  const updateSway = React.useCallback(() => {
+    const totalSway = windEffect * 14 + mouseDraftRef.current * 22;
+    if (swayRef.current) {
+      swayRef.current.style.transform = `translateX(${totalSway}px) skewX(${totalSway * -0.35}deg) scale(${clickFlutterRef.current ? 1.08 : 1})`;
+    }
+    if (haloRef.current) {
+      haloRef.current.style.transform = `translateX(${totalSway * 0.4}px)`;
+    }
+  }, [windEffect]);
+
+  useEffect(() => {
+    updateSway();
+  }, [updateSway]);
 
   // Scaled dimensions
   const sizeMap = {
@@ -78,7 +97,7 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
     const colors = ['#FFE58F', '#FFD666', '#FFA940', '#FF7A45', '#FF4D4F'];
 
     const spawnSpark = (burst = false) => {
-      const angle = (windEffect + mouseDraft) * 1.5;
+      const angle = (windEffect + mouseDraftRef.current) * 1.5;
       sparksRef.current.push({
         x: dim.w / 2 + (Math.random() - 0.5) * (burst ? 40 : 20),
         y: dim.h - 20,
@@ -94,6 +113,9 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
 
     let tick = 0;
     const loop = () => {
+      animId = requestAnimationFrame(loop);
+      // Skip all work when the tab is hidden (battery + CPU saver)
+      if (document.hidden) return;
       tick++;
       ctx.clearRect(0, 0, dim.w, dim.h);
 
@@ -125,33 +147,37 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
           sparksRef.current.splice(i, 1);
         }
       }
-
-      animId = requestAnimationFrame(loop);
     };
 
     animId = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(animId);
-  }, [dim.w, dim.h, currentIntensity, curSettings.sparkCount, windEffect, mouseDraft]);
+  }, [dim.w, dim.h, currentIntensity, curSettings.sparkCount, windEffect]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!interactive || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const relativeX = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2);
-    setMouseDraft(relativeX * 0.7);
+    mouseDraftRef.current = relativeX * 0.7;
+    updateSway();
   };
 
   const handleMouseLeave = () => {
-    setMouseDraft(0);
+    mouseDraftRef.current = 0;
+    updateSway();
   };
 
   const handleClick = () => {
-    setClickFlutter(true);
-    setTimeout(() => setClickFlutter(false), 250);
+    clickFlutterRef.current = true;
+    updateSway();
+    setTimeout(() => {
+      clickFlutterRef.current = false;
+      updateSway();
+    }, 250);
 
     // Burst 8 golden sparks instantly in canvas
     for (let i = 0; i < 8; i++) {
-      const angle = (windEffect + mouseDraft) * 2;
+      const angle = (windEffect + mouseDraftRef.current) * 2;
       sparksRef.current.push({
         x: dim.w / 2 + (Math.random() - 0.5) * 35,
         y: dim.h - 22,
@@ -168,8 +194,6 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
     if (onSparkBurst) onSparkBurst();
   };
 
-  const totalSway = windEffect * 14 + mouseDraft * 22;
-
   return (
     <div
       ref={containerRef}
@@ -182,19 +206,17 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
     >
       {/* 1. Soft Warm Ambient Halo Glow */}
       <div
+        ref={haloRef}
         className="absolute bottom-2 w-3/4 h-3/4 rounded-full blur-2xl opacity-45 group-hover:opacity-65 transition-opacity pointer-events-none"
         style={{
           background: 'radial-gradient(circle, #FF633C 0%, #E93B2F 45%, transparent 75%)',
-          transform: `translateX(${totalSway * 0.4}px)`,
         }}
       />
 
       {/* 2. Master SVG Flame Tongue (Mathematical Precision, Silky 60fps CSS Animation) */}
       <div
+        ref={swayRef}
         className="relative z-10 w-full h-full flex items-end justify-center transition-transform duration-200 ease-out"
-        style={{
-          transform: `translateX(${totalSway}px) skewX(${totalSway * -0.35}deg) scale(${clickFlutter ? 1.08 : 1})`,
-        }}
       >
         <svg
           viewBox="0 0 100 130"
@@ -204,7 +226,7 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
         >
           <defs>
             {/* Outer Flame Gradient: Deep burning crimson to vivid orange */}
-            <linearGradient id="flameOuterGrad2" x1="50" y1="125" x2="50" y2="10" gradientUnits="userSpaceOnUse">
+            <linearGradient id={`flameOuterGrad-${uid}`} x1="50" y1="125" x2="50" y2="10" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#E93B2F" />
               <stop offset="40%" stopColor="#FF633C" />
               <stop offset="80%" stopColor="#FFA940" />
@@ -212,21 +234,21 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
             </linearGradient>
 
             {/* Middle Flame Gradient: Rich golden amber */}
-            <linearGradient id="flameMidGrad2" x1="50" y1="125" x2="50" y2="35" gradientUnits="userSpaceOnUse">
+            <linearGradient id={`flameMidGrad-${uid}`} x1="50" y1="125" x2="50" y2="35" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#FF7A45" />
               <stop offset="50%" stopColor="#FFC069" />
               <stop offset="100%" stopColor="#FFF1B8" />
             </linearGradient>
 
             {/* Inner Flame Heart: Incandescent white-gold */}
-            <linearGradient id="flameCoreGrad2" x1="50" y1="125" x2="50" y2="60" gradientUnits="userSpaceOnUse">
+            <linearGradient id={`flameCoreGrad-${uid}`} x1="50" y1="125" x2="50" y2="60" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#FFD666" />
               <stop offset="40%" stopColor="#FFFBE6" />
               <stop offset="100%" stopColor="#FFFFFF" />
             </linearGradient>
 
             {/* Blue Ignition Base */}
-            <radialGradient id="flameBaseBlue2" cx="50" cy="120" r="16" gradientUnits="userSpaceOnUse">
+            <radialGradient id={`flameBaseBlue-${uid}`} cx="50" cy="120" r="16" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#85A5FF" stopOpacity="0.9" />
               <stop offset="60%" stopColor="#2F54EB" stopOpacity="0.5" />
               <stop offset="100%" stopColor="#0B124D" stopOpacity="0" />
@@ -236,7 +258,7 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
           {/* LAYER 1: Outer Morphing Flame Body */}
           <path
             d="M50 8C50 8 68 32 68 58C68 84 58 100 62 118C62 122 56 125 50 125C44 125 38 122 38 118C42 100 32 84 32 58C32 32 50 8 50 8Z"
-            fill="url(#flameOuterGrad2)"
+            fill={`url(#flameOuterGrad-${uid})`}
             className="origin-bottom"
             style={{
               animation: `flameWobbleOuter ${curSettings.speed}s ease-in-out infinite alternate`,
@@ -246,7 +268,7 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
           {/* Secondary dynamic licking tongue on the right */}
           <path
             d="M50 25C50 25 64 45 64 70C64 92 54 105 57 122C57 124 53 125 50 125C47 125 43 124 43 122C46 105 36 92 36 70C36 45 50 25 50 25Z"
-            fill="url(#flameOuterGrad2)"
+            fill={`url(#flameOuterGrad-${uid})`}
             opacity="0.88"
             style={{
               animation: `flameWobbleMid ${curSettings.speed * 0.8}s ease-in-out infinite alternate-reverse`,
@@ -256,7 +278,7 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
           {/* LAYER 2: Middle Vivid Amber Core */}
           <path
             d="M50 38C50 38 60 55 60 78C60 98 54 110 56 122C56 124 53 125 50 125C47 125 44 124 44 122C46 110 40 98 40 78C40 55 50 38 50 38Z"
-            fill="url(#flameMidGrad2)"
+            fill={`url(#flameMidGrad-${uid})`}
             style={{
               animation: `flameWobbleInner ${curSettings.speed * 0.65}s ease-in-out infinite alternate`,
             }}
@@ -265,14 +287,14 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
           {/* LAYER 3: Incandescent White-Hot Flame Teardrop Heart */}
           <path
             d="M50 62C50 62 56 75 56 92C56 108 53 118 54 123C54 124.5 52 125 50 125C48 125 46 124.5 46 123C47 118 44 108 44 92C44 75 50 62 50 62Z"
-            fill="url(#flameCoreGrad2)"
+            fill={`url(#flameCoreGrad-${uid})`}
             style={{
-              animation: `pulse 1.2s ease-in-out infinite alternate`,
+              animation: `flamePulse 1.2s ease-in-out infinite alternate`,
             }}
           />
 
           {/* Base Clean Blue Gas Spark */}
-          <circle cx="50" cy="122" r="10" fill="url(#flameBaseBlue2)" />
+          <circle cx="50" cy="122" r="10" fill={`url(#flameBaseBlue-${uid})`} />
         </svg>
 
         {/* 3. High-Performance Silky Canvas Embers (NO LAG) */}
@@ -304,40 +326,6 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
           ))}
         </div>
       )}
-
-      {/* Global CSS Keyframe Animations for Smooth Flame Wobble */}
-      <style>{`
-        @keyframes flameWobbleOuter {
-          0% {
-            transform: scaleY(0.96) skewX(-1.5deg);
-          }
-          50% {
-            transform: scaleY(1.04) skewX(2deg);
-          }
-          100% {
-            transform: scaleY(0.98) skewX(-2deg);
-          }
-        }
-        @keyframes flameWobbleMid {
-          0% {
-            transform: scaleY(1.03) skewX(2.5deg);
-          }
-          50% {
-            transform: scaleY(0.95) skewX(-2deg);
-          }
-          100% {
-            transform: scaleY(1.02) skewX(1deg);
-          }
-        }
-        @keyframes flameWobbleInner {
-          0% {
-            transform: scaleY(0.98) skewX(-1deg);
-          }
-          100% {
-            transform: scaleY(1.03) skewX(1.5deg);
-          }
-        }
-      `}</style>
     </div>
   );
 };

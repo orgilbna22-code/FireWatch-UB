@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { ActiveTab, Language, ViewMode } from '../../types';
+import React from 'react';
+import { ActiveTab, Language, Theme, ViewMode } from '../../types';
 import { getTranslation } from '../../i18n/translations';
-import { soundEngine } from './AudioAmbiance';
+import { soundEngine, useSoundStatus } from './AudioAmbiance';
 
 interface HeaderProps {
   activeTab: ActiveTab;
@@ -10,6 +10,8 @@ interface HeaderProps {
   setLanguage: (lang: Language) => void;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
+  theme?: Theme;
+  onToggleTheme?: () => void;
   onOpenDemoInfo: () => void;
   onToggleFamilyMode?: () => void;
   isFamilyModeOpen?: boolean;
@@ -23,13 +25,16 @@ export const Header: React.FC<HeaderProps> = ({
   setLanguage,
   viewMode,
   setViewMode,
+  theme,
+  onToggleTheme,
   onOpenDemoInfo,
   onToggleFamilyMode,
   isFamilyModeOpen,
   onOpenMobileMenu,
 }) => {
   const t = getTranslation(language);
-  const [soundOn, setSoundOn] = useState(false);
+  // Shared engine state: stays in sync with FireSimulationLab & mobile drawer
+  const soundOn = useSoundStatus();
 
   const mainNavItems: { id: ActiveTab; label: string }[] = [
     { id: 'landing', label: language === 'mn' ? 'Эхлэл' : 'Overview' },
@@ -51,8 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   const toggleSound = () => {
-    const s = soundEngine.toggle();
-    setSoundOn(s);
+    soundEngine.toggle();
   };
 
   return (
@@ -108,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
-            <div className="absolute top-full right-0 mt-1.5 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-black/[0.06] p-1.5 hidden group-hover:block group-focus-within:block z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute top-full right-0 mt-1.5 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-black/[0.06] p-1.5 hidden group-hover:block group-focus-within:block z-50 animate-pop-in">
               {secondaryNavItems.map((item) => (
                 <button
                   key={item.id}
@@ -178,6 +182,18 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {soundOn ? '🔥' : '🔇'}
           </button>
+
+          {/* Night Mode Toggle */}
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              className="w-9 h-9 rounded-full text-sm flex items-center justify-center transition-all text-[#72778A] hover:text-[#0B124D] hover:bg-black/5 border border-black/[0.08]"
+              title={theme === 'dark' ? 'Өдрийн горимд шилжих' : 'Шөнийн горимд шилжих'}
+              aria-label="Шөнийн горим асаах/унтраах"
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+          )}
 
           {/* Language Switcher */}
           <button

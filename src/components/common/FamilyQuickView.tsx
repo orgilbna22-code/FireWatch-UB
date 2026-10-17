@@ -53,7 +53,7 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[1200] bg-black/60 backdrop-blur-md overflow-y-auto flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[1200] bg-black/60 backdrop-blur-md overflow-y-auto flex items-center justify-center p-3 sm:p-6 animate-fade-in">
       <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 lg:p-8 bg-white/98 backdrop-blur-2xl rounded-3xl sm:rounded-[32px] border border-black/[0.08] shadow-[0_25px_60px_rgba(11,18,77,0.25)] my-auto relative">
       
       {/* Top Banner / Navigation */}
@@ -162,7 +162,7 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
                 <span className="text-3xl">🪣</span>
                 <span
                   className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
-                    checkedItems.stove ? 'bg-[#12B89A] text-white' : 'border border-slate-300 text-transparent'
+                    checkedItems.stove ? 'bg-[#12B89A] text-[#0B124D]' : 'border border-slate-300 text-transparent'
                   }`}
                 >
                   ✓
@@ -196,7 +196,7 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
                 <span className="text-3xl">🔌</span>
                 <span
                   className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
-                    checkedItems.power ? 'bg-[#12B89A] text-white' : 'border border-slate-300 text-transparent'
+                    checkedItems.power ? 'bg-[#12B89A] text-[#0B124D]' : 'border border-slate-300 text-transparent'
                   }`}
                 >
                   ✓
@@ -230,7 +230,7 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
                 <span className="text-3xl">💨</span>
                 <span
                   className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
-                    checkedItems.chimney ? 'bg-[#12B89A] text-white' : 'border border-slate-300 text-transparent'
+                    checkedItems.chimney ? 'bg-[#12B89A] text-[#0B124D]' : 'border border-slate-300 text-transparent'
                   }`}
                 >
                   ✓
@@ -255,7 +255,7 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
 
       {/* Completion Banner */}
       {allChecked && (
-        <div className="mt-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-in fade-in duration-300">
+        <div className="mt-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-fade-in">
           <div className="flex items-center gap-2">
             <span className="text-lg shrink-0">🌟</span>
             <span className="font-bold">

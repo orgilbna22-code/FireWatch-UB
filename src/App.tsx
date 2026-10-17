@@ -22,22 +22,51 @@ import { GlobalFireBackground } from './components/common/GlobalFireBackground';
 import { PersonalPortal } from './components/personal/PersonalPortal';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { MobileMenuDrawer } from './components/common/MobileMenuDrawer';
-import { soundEngine } from './components/common/AudioAmbiance';
+import { useTheme } from './hooks/useTheme';
+
+const VALID_TABS: ActiveTab[] = [
+  'landing', 'overview', 'map', 'explorer', 'districts', 'incidents',
+  'calendar', 'emergency', 'weather', 'safety', 'reports', 'sources', 'personal',
+];
+
+function getInitialTab(): ActiveTab {
+  const h = window.location.hash.replace('#', '') as ActiveTab;
+  return VALID_TABS.includes(h) ? h : 'landing';
+}
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('landing');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(getInitialTab);
   const [language, setLanguage] = useState<Language>('mn');
   const [viewMode, setViewMode] = useState<ViewMode>('public');
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>('bayanzurkh');
   const [isDataSourcesModalOpen, setIsDataSourcesModalOpen] = useState(false);
   const [isFamilyModeOpen, setIsFamilyModeOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [soundOn, setSoundOn] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   // Smooth scroll to top when changing views
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
+
+  // Keep URL hash in sync so tabs survive refresh and can be deep-linked
+  useEffect(() => {
+    const target = `#${activeTab}`;
+    if (window.location.hash !== target) {
+      window.history.replaceState(null, '', target);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const h = window.location.hash.replace('#', '') as ActiveTab;
+      if (VALID_TABS.includes(h)) {
+        setActiveTab((cur) => (cur === h ? cur : h));
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const handleSelectDistrictAndMap = (districtId: string) => {
     setSelectedDistrictId(districtId);
@@ -47,11 +76,6 @@ export default function App() {
   const handleSelectDistrictAndDetail = (districtId: string) => {
     setSelectedDistrictId(districtId);
     setActiveTab('districts');
-  };
-
-  const handleToggleSound = () => {
-    const s = soundEngine.toggle();
-    setSoundOn(s);
   };
 
   return (
@@ -68,6 +92,8 @@ export default function App() {
         setLanguage={setLanguage}
         viewMode={viewMode}
         setViewMode={setViewMode}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onOpenDemoInfo={() => setIsDataSourcesModalOpen(true)}
         onToggleFamilyMode={() => setIsFamilyModeOpen(!isFamilyModeOpen)}
         isFamilyModeOpen={isFamilyModeOpen}
@@ -269,8 +295,8 @@ export default function App() {
         onOpenSources={() => setIsDataSourcesModalOpen(true)}
         onToggleFamilyMode={() => setIsFamilyModeOpen(!isFamilyModeOpen)}
         isFamilyModeOpen={isFamilyModeOpen}
-        soundOn={soundOn}
-        onToggleSound={handleToggleSound}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Data Governance & Demo Transparency Modal */}

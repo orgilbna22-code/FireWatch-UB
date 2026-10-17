@@ -74,8 +74,28 @@ export const RiskMap: React.FC<RiskMapProps> = ({
   // District Carousel Controls
   const [sortBy, setSortBy] = useState<DistrictSortMode>('risk_desc'); // Default to highest risk first for maximum safety value
   const carouselRef = useRef<HTMLDivElement | null>(null);
+  const layersDropdownRef = useRef<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  // Close layers dropdown on outside click / Escape
+  useEffect(() => {
+    if (!showLayersDropdown) return;
+    const onDocMouseDown = (e: MouseEvent) => {
+      if (layersDropdownRef.current && !layersDropdownRef.current.contains(e.target as Node)) {
+        setShowLayersDropdown(false);
+      }
+    };
+    const onKeyEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowLayersDropdown(false);
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    document.addEventListener('keydown', onKeyEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onKeyEsc);
+    };
+  }, [showLayersDropdown]);
 
   // Universal fast search
   const [searchQuery, setSearchQuery] = useState('');
@@ -338,6 +358,10 @@ export const RiskMap: React.FC<RiskMapProps> = ({
     return UB_KHOROOS.filter((k) => k.districtId === activeDistrict.id);
   }, [khorooMode, activeDistrict]);
 
+  // Boolean tier instead of raw zoom: markers only rebuild when crossing
+  // the detail threshold, not on every single zoom tick (smooth zooming)
+  const isDetailedZoom = mapZoom >= 13;
+
   useEffect(() => {
     const group = khoroosLayerGroup.current;
     if (!group) return;
@@ -353,7 +377,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
       else if (kh.riskScore >= 55) badgeBg = '#FF633C';
       else if (kh.riskScore >= 35) badgeBg = '#F59E0B';
 
-      const isDetailed = mapZoom >= 13 || isSelected;
+      const isDetailed = isDetailedZoom || isSelected;
 
       const khorooIcon = isDetailed
         ? L.divIcon({
@@ -438,7 +462,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
       group.addLayer(marker);
     });
-  }, [visibleKhoroos, selectedKhoroo, language, mapZoom]);
+  }, [visibleKhoroos, selectedKhoroo, language, isDetailedZoom]);
 
   // 7. Render Fire Stations & Access Buffers
   useEffect(() => {
@@ -819,7 +843,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
           </button>
 
           {/* Layers Dropdown Menu */}
-          <div className="relative shrink-0">
+          <div className="relative shrink-0" ref={layersDropdownRef}>
             <button
               onClick={() => setShowLayersDropdown(!showLayersDropdown)}
               className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-full text-xs font-semibold shadow-md border border-black/[0.08] flex items-center gap-1 transition-all ${
@@ -946,7 +970,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
               onClick={handleResetToAllUB}
               className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm backdrop-blur-md transition-all shrink-0 flex items-center gap-1 ${
                 !activeDistrict
-                  ? 'bg-[#0B124D] text-white ring-2 ring-white scale-102 font-bold shadow-md'
+                  ? 'bg-[#0B124D] text-white ring-2 ring-white scale-[1.02] font-bold shadow-md'
                   : 'bg-white/90 text-[#0B124D] hover:bg-white'
               }`}
             >
@@ -988,7 +1012,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                   }}
                   className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm backdrop-blur-md transition-all shrink-0 flex items-center gap-1.5 group ${
                     isSel
-                      ? 'bg-[#0B124D] text-white ring-2 ring-white scale-102 font-bold shadow-lg'
+                      ? 'bg-[#0B124D] text-white ring-2 ring-white scale-[1.02] font-bold shadow-lg'
                       : 'bg-white/90 text-[#0B124D] hover:bg-white hover:text-[#FF633C]'
                   }`}
                 >

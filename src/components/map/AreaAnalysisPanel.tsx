@@ -39,7 +39,7 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
       ? 'bg-[#FF633C] text-white'
       : activeRiskLevel === 'moderate'
       ? 'bg-amber-500 text-white'
-      : 'bg-[#12B89A] text-white';
+      : 'bg-[#12B89A] text-[#0B124D]';
 
   const photoToShow = isKhorooView
     ? selectedKhoroo!.photoUrl
@@ -69,7 +69,7 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
           /* Mobile styles: Bottom sheet floating card; Desktop: constrained height right drawer */
           isMobileExpanded
             ? 'bottom-16 left-0 right-0 h-[75vh] max-h-[calc(100dvh-80px)] rounded-t-3xl border-b-0 lg:bottom-3 lg:left-auto lg:right-3 lg:top-3 lg:w-[420px] lg:h-[calc(100%-24px)] lg:max-h-[calc(100%-24px)] lg:rounded-3xl lg:border'
-            : 'bottom-[72px] left-3 right-3 max-h-[125px] rounded-2xl border lg:bottom-3 lg:left-auto lg:right-3 lg:top-3 lg:w-[420px] lg:h-[calc(100%-24px)] lg:max-h-[calc(100%-24px)] lg:rounded-3xl'
+            : 'bottom-[72px] left-3 right-3 max-h-[150px] rounded-2xl border lg:bottom-3 lg:left-auto lg:right-3 lg:top-3 lg:w-[420px] lg:h-[calc(100%-24px)] lg:max-h-[calc(100%-24px)] lg:rounded-3xl'
         }`}
       >
         

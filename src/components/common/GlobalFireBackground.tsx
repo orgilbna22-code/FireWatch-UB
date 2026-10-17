@@ -21,6 +21,19 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  // On phones the bottom nav (z-[1100]) fully covers the 80px ribbon,
+  // so animating it there is pure wasted battery/CPU. Desktop only.
+  const [isCompactViewport, setIsCompactViewport] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const onChange = (e: MediaQueryListEvent) => setIsCompactViewport(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem('firewatch_bg_mode', mode);
@@ -31,7 +44,7 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
 
   // Ultra-optimized, zero-shadowBlur 60fps Canvas (Bottom flame ribbon only: 120px height)
   useEffect(() => {
-    if (mode === 'off') return;
+    if (mode === 'off' || isCompactViewport) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -84,9 +97,10 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
     let lastTime = performance.now();
 
     const render = (now: number) => {
-      // Cap at 60fps to prevent mobile/laptop thermal throttle
-      if (now - lastTime < 16) {
-        animId = requestAnimationFrame(render);
+      animId = requestAnimationFrame(render);
+      // Browsers pause rAF in hidden tabs, but some embedded webviews
+      // still deliver frames - skip all drawing work in that case
+      if (document.hidden || now - lastTime < 16) {
         return;
       }
       lastTime = now;
@@ -158,7 +172,7 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', onResize);
     };
-  }, [mode]);
+  }, [mode, isCompactViewport]);
 
   const isOff = mode === 'off';
 
@@ -168,7 +182,7 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
         Ultra-lightweight bottom flame ribbon (Only 80px - 120px at the very bottom):
         Fixed, hardware-accelerated, zero CPU lag.
       */}
-      {!isOff && (
+      {!isOff && !isCompactViewport && (
         <div
           className={`fixed bottom-0 left-0 right-0 pointer-events-none z-[32] overflow-hidden select-none transition-all duration-300 ${
             mode === 'vivid' ? 'h-[120px]' : 'h-[80px]'

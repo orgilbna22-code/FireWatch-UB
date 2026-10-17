@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Language } from '../../types';
 import { FireAnimation } from '../common/FireAnimation';
 import { AmbientFireBackground } from '../common/AmbientFireBackground';
-import { soundEngine } from '../common/AudioAmbiance';
+import { soundEngine, useSoundStatus } from '../common/AudioAmbiance';
 
 interface FireSimulationLabProps {
   language: Language;
@@ -16,7 +16,7 @@ export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
   const [windSpeed, setWindSpeed] = useState<number>(22); // km/h
   const [humidity, setHumidity] = useState<number>(30); // %
   const [fuelType, setFuelType] = useState<'grass' | 'stove' | 'electrical' | 'timber'>('grass');
-  const [soundActive, setSoundActive] = useState<boolean>(false);
+  const soundActive = useSoundStatus();
 
   // Compute simulated danger index (0 - 100)
   const drynessFactor = Math.max(0, (100 - humidity) / 100);
@@ -36,8 +36,7 @@ export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
     simulatedIndex >= 80 ? 'extreme' : simulatedIndex >= 55 ? 'high' : simulatedIndex >= 35 ? 'moderate' : 'low';
 
   const handleToggleSound = () => {
-    const newState = soundEngine.toggle();
-    setSoundActive(newState);
+    soundEngine.toggle();
   };
 
   return (

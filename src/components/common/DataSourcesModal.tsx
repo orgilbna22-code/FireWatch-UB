@@ -68,8 +68,8 @@ export const DataSourcesModal: React.FC<DataSourcesModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B124D]/60 backdrop-blur-xs">
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-[#0B124D]/10 max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-[#0B124D]/60 backdrop-blur-xs">
+      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-[#0B124D]/10 max-h-[90vh] flex flex-col overflow-hidden animate-pop-in">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#0B124D]/10">

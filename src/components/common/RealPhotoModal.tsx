@@ -33,7 +33,7 @@ export const RealPhotoModal: React.FC<RealPhotoModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in">
       <div className="bg-[#0B124D] text-white w-full max-w-4xl rounded-3xl overflow-hidden border border-white/10 shadow-2xl flex flex-col max-h-[92vh]">
         
         {/* Modal Header */}

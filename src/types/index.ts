@@ -1,5 +1,6 @@
 export type Language = 'mn' | 'en';
 export type ViewMode = 'public' | 'pro';
+export type Theme = 'light' | 'dark';
 export type ActiveTab = 
   | 'landing' 
   | 'overview' 
