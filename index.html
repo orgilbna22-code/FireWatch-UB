@@ -2,11 +2,19 @@
 <html lang="mn">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0B124D" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>FIREWATCH UB</title>
+    <script>
+      // Anti-flash: night mode only applies if the user turned it on themselves
+      try {
+        if (localStorage.getItem('firewatch_theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    </script>
     <meta name="description" content="Гал гарахаас өмнө эрсдэлийг нь харуулна. Улаанбаатар хотын галын эрсдэлийн тандалт, дүн шинжилгээ, олон нийтийн аюулгүй байдлын платформ." />
     <meta property="og:title" content="FIREWATCH UB" />
     <meta property="og:description" content="Гал гарахаас өмнө эрсдэлийг нь харуулна. Улаанбаатар хотын галын эрсдэлийн тандалт, дүн шинжилгээ, олон нийтийн аюулгүй байдлын платформ." />
