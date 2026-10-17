@@ -132,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Desktop Only: Personal Profile & Creator Chip */}
           <button
             onClick={() => setActiveTab('personal')}
-            className={`hidden sm:flex px-3 py-1.5 rounded-full text-xs font-semibold items-center gap-1.5 transition-all ${
+            className={`hidden lg:flex px-3 py-1.5 rounded-full text-xs font-semibold items-center gap-1.5 transition-all ${
               activeTab === 'personal'
                 ? 'bg-[#0B124D] text-white shadow-sm ring-2 ring-[#FF633C]/40'
                 : 'bg-[#0B124D]/5 text-[#0B124D] hover:bg-[#0B124D]/10'
@@ -147,11 +147,11 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* Desktop Only: Family & Elder Quick Mode Button */}
+          {/* Large Desktop Only: Family & Elder Quick Mode Button */}
           {onToggleFamilyMode && (
             <button
               onClick={onToggleFamilyMode}
-              className={`hidden md:flex px-3 py-1.5 rounded-full text-xs font-semibold items-center gap-1.5 transition-all ${
+              className={`hidden xl:flex px-3 py-1.5 rounded-full text-xs font-semibold items-center gap-1.5 transition-all ${
                 isFamilyModeOpen
                   ? 'bg-amber-500 text-white shadow-sm'
                   : 'bg-amber-500/10 text-amber-900 hover:bg-amber-500/20'
@@ -168,7 +168,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Audio Ambient Fireplace Toggle */}
           <button
             onClick={toggleSound}
-            className={`p-2 rounded-full text-xs min-w-[36px] min-h-[36px] flex items-center justify-center transition-all ${
+            className={`p-2 rounded-full text-xs w-9 h-9 flex items-center justify-center transition-all ${
               soundOn
                 ? 'bg-[#FF633C]/10 text-[#FF633C]'
                 : 'text-[#72778A] hover:text-[#0B124D] hover:bg-black/5'
@@ -182,16 +182,16 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Language Switcher */}
           <button
             onClick={() => setLanguage(language === 'mn' ? 'en' : 'mn')}
-            className="px-2.5 py-1 min-h-[36px] text-xs font-mono font-bold text-[#0B124D] hover:bg-[#0B124D]/5 rounded-full transition-colors border border-black/[0.08] flex items-center justify-center"
+            className="w-9 h-9 text-xs font-mono font-bold text-[#0B124D] hover:bg-[#0B124D]/5 rounded-full transition-colors border border-black/[0.08] flex items-center justify-center shrink-0"
             aria-label="Toggle language"
           >
             {language === 'mn' ? 'EN' : 'MN'}
           </button>
 
-          {/* Primary CTA (View Map - Desktop only so header fits on mobile) */}
+          {/* Primary CTA (View Map - Desktop only so header fits cleanly on mobile) */}
           <button
             onClick={() => setActiveTab('map')}
-            className={`hidden sm:flex px-4 py-1.5 text-xs font-semibold rounded-full transition-all shadow-sm active:scale-95 whitespace-nowrap min-h-[36px] items-center justify-center ${
+            className={`hidden lg:flex px-4 py-1.5 text-xs font-semibold rounded-full transition-all shadow-sm active:scale-95 whitespace-nowrap min-h-[36px] items-center justify-center ${
               activeTab === 'map'
                 ? 'bg-[#FF633C] text-white ring-2 ring-[#FF633C]/40'
                 : 'bg-[#0B124D] hover:bg-[#11166B] text-white'
@@ -200,11 +200,11 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{t.viewRiskMap}</span>
           </button>
 
-          {/* Mobile Menu Trigger Button (Always visible on mobile) */}
+          {/* Mobile Menu Trigger Button (Always visible on mobile & tablet) */}
           {onOpenMobileMenu && (
             <button
               onClick={onOpenMobileMenu}
-              className="lg:hidden w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0B124D] flex items-center justify-center transition-colors text-lg font-bold shrink-0 shadow-xs"
+              className="lg:hidden w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0B124D] flex items-center justify-center transition-colors text-base font-bold shrink-0 shadow-2xs"
               aria-label="Цэс нээх"
               title="Бүх цэс нээх"
             >

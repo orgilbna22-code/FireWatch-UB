@@ -59,32 +59,32 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
       {isMobileExpanded && (
         <div
           onClick={() => setIsMobileExpanded(false)}
-          className="sm:hidden fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[1040] transition-opacity duration-300"
+          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-[3px] z-[1040] transition-opacity duration-300"
           aria-hidden="true"
         />
       )}
 
       <div
-        className={`fixed sm:absolute z-[1050] bg-white/98 backdrop-blur-2xl shadow-2xl border border-black/[0.08] flex flex-col overflow-hidden transition-all duration-300 ${
+        className={`fixed lg:absolute z-[1050] bg-white/98 backdrop-blur-2xl shadow-2xl border border-black/[0.08] flex flex-col overflow-hidden transition-all duration-300 ${
           /* Mobile styles: Bottom sheet floating card; Desktop: constrained height right drawer */
           isMobileExpanded
-            ? 'bottom-16 left-0 right-0 h-[72vh] max-h-[calc(100dvh-90px)] rounded-t-3xl border-b-0 sm:bottom-3 sm:left-auto sm:right-3 sm:top-3 sm:w-[420px] sm:h-[calc(100%-24px)] sm:max-h-[calc(100%-24px)] sm:rounded-3xl sm:border'
-            : 'bottom-[72px] left-2 right-2 max-h-[130px] rounded-2xl border sm:bottom-3 sm:left-auto sm:right-3 sm:top-3 sm:w-[420px] sm:h-[calc(100%-24px)] sm:max-h-[calc(100%-24px)] sm:rounded-3xl'
+            ? 'bottom-16 left-0 right-0 h-[75vh] max-h-[calc(100dvh-80px)] rounded-t-3xl border-b-0 lg:bottom-3 lg:left-auto lg:right-3 lg:top-3 lg:w-[420px] lg:h-[calc(100%-24px)] lg:max-h-[calc(100%-24px)] lg:rounded-3xl lg:border'
+            : 'bottom-[72px] left-3 right-3 max-h-[125px] rounded-2xl border lg:bottom-3 lg:left-auto lg:right-3 lg:top-3 lg:w-[420px] lg:h-[calc(100%-24px)] lg:max-h-[calc(100%-24px)] lg:rounded-3xl'
         }`}
       >
         
         {/* Mobile Drag / Peek Handle Bar */}
         <div
           onClick={() => setIsMobileExpanded(!isMobileExpanded)}
-          className="sm:hidden w-full pt-2 pb-1 flex flex-col items-center justify-center cursor-pointer active:bg-slate-50"
+          className="lg:hidden w-full pt-2.5 pb-1 flex flex-col items-center justify-center cursor-pointer active:bg-slate-50"
         >
-          <div className="w-10 h-1 bg-slate-300 rounded-full" />
+          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
         </div>
 
         {/* Panel Header */}
         <div className="p-3 sm:p-5 border-b border-black/[0.06] flex items-center justify-between bg-[#F7F8FA]">
           <div
-            className="flex-1 pr-2 cursor-pointer sm:cursor-default"
+            className="flex-1 pr-2 cursor-pointer lg:cursor-default"
             onClick={() => setIsMobileExpanded(!isMobileExpanded)}
           >
             <div className="flex items-center gap-2 mb-0.5">
@@ -118,14 +118,14 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
             {/* Mobile Expand / Minimize button */}
             <button
               onClick={() => setIsMobileExpanded(!isMobileExpanded)}
-              className="sm:hidden px-2.5 py-1.5 rounded-xl bg-[#0B124D] text-white text-[11px] font-bold transition-all"
+              className="lg:hidden px-2.5 py-1.5 rounded-xl bg-[#0B124D] text-white text-[11px] font-bold transition-all active:scale-95 shadow-2xs"
             >
               {isMobileExpanded ? 'Хураах ↓' : 'Дэлгэрэнгүй ↑'}
             </button>
 
             <button
               onClick={() => setIsPhotoModalOpen(true)}
-              className="px-2.5 py-1.5 rounded-xl bg-black/5 hover:bg-[#FF633C] hover:text-white text-[#0B124D] text-xs font-semibold transition-all hidden sm:flex items-center gap-1"
+              className="px-2.5 py-1.5 rounded-xl bg-black/5 hover:bg-[#FF633C] hover:text-white text-[#0B124D] text-xs font-semibold transition-all hidden lg:flex items-center gap-1"
               title="Бодит фото зураг томруулах"
             >
               <span>📷</span>
@@ -143,9 +143,9 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
         </div>
 
         {/* Content visible only when expanded on mobile or always on desktop */}
-        <div className={`${isMobileExpanded ? 'flex' : 'hidden sm:flex'} flex-1 flex-col overflow-hidden`}>
+        <div className={`${isMobileExpanded ? 'flex' : 'hidden lg:flex'} flex-1 flex-col overflow-hidden`}>
           {/* Navigation Tabs inside Panel for clean structure */}
-          <div className="flex items-center gap-1 bg-[#F2F4F7] p-1 mx-3 sm:mx-4 mt-2 sm:mt-3 rounded-2xl text-xs font-semibold">
+          <div className="flex items-center gap-1 bg-[#F2F4F7] p-1 mx-3 sm:mx-4 mt-2 sm:mt-3 rounded-2xl text-[11px] sm:text-xs font-semibold">
             <button
               onClick={() => setActiveTab('reasons')}
               className={`flex-1 py-1.5 rounded-xl transition-all ${
@@ -190,15 +190,18 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                 {/* Photo Banner with Click to Zoom */}
                 <div
                   onClick={() => setIsPhotoModalOpen(true)}
-                  className="relative h-24 rounded-2xl overflow-hidden cursor-pointer group shadow-2xs border border-black/[0.06]"
+                  className="relative h-24 rounded-2xl overflow-hidden cursor-pointer group shadow-2xs border border-black/[0.06] bg-gradient-to-tr from-[#0B124D] via-[#11166B] to-[#1a228a]"
                 >
                   <img
                     src={photoToShow}
                     alt={titleText}
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=1200&q=80';
+                    }}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end justify-between p-3">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex items-end justify-between p-3">
                     <div>
                       <span className="text-[10px] font-mono text-white/70 uppercase block">
                         Бодит нөхцөл байдал

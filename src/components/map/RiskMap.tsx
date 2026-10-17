@@ -143,7 +143,26 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
     mapInstanceRef.current = map;
 
+    // Automatic layout recalibration for zero grey tiles and perfect responsive fit
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 150);
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 450);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (mapContainerRef.current && window.ResizeObserver) {
+      resizeObserver = new ResizeObserver(() => {
+        map.invalidateSize();
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
     return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       map.remove();
       mapInstanceRef.current = null;
     };

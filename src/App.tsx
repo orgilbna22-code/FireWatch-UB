@@ -74,27 +74,17 @@ export default function App() {
         onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
       />
 
-      {/* Optional Family & Elder Friendly Quick Panel */}
-      <AnimatePresence>
-        {isFamilyModeOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="overflow-hidden px-4"
-          >
-            <FamilyQuickView
-              language={language}
-              onClose={() => setIsFamilyModeOpen(false)}
-              onOpenMap={() => {
-                setIsFamilyModeOpen(false);
-                setActiveTab('map');
-              }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Optional Family & Elder Friendly Quick Modal Overlay */}
+      {isFamilyModeOpen && (
+        <FamilyQuickView
+          language={language}
+          onClose={() => setIsFamilyModeOpen(false)}
+          onOpenMap={() => {
+            setIsFamilyModeOpen(false);
+            setActiveTab('map');
+          }}
+        />
+      )}
 
       {/* Main View Router with Apple-Grade Smooth Transition */}
       <main className={`flex-1 flex flex-col relative w-full max-w-full overflow-x-hidden ${activeTab === 'map' ? '' : 'pb-20 lg:pb-0'}`}>

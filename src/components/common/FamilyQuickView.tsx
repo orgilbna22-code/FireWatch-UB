@@ -53,7 +53,8 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto my-6 p-4 sm:p-6 lg:p-8 bg-white/90 backdrop-blur-2xl rounded-[32px] border border-black/[0.06] shadow-[0_20px_50px_rgba(11,18,77,0.08)]">
+    <div className="fixed inset-0 z-[1200] bg-black/60 backdrop-blur-md overflow-y-auto flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 lg:p-8 bg-white/98 backdrop-blur-2xl rounded-3xl sm:rounded-[32px] border border-black/[0.08] shadow-[0_25px_60px_rgba(11,18,77,0.25)] my-auto relative">
       
       {/* Top Banner / Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-black/[0.06]">
@@ -273,7 +274,7 @@ export const FamilyQuickView: React.FC<FamilyQuickViewProps> = ({
           )}
         </div>
       )}
-
+      </div>
     </div>
   );
 };

@@ -187,7 +187,7 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
       )}
 
       {/* Clean, Non-intrusive Control Pill (Bottom Right - Desktop only to keep mobile viewport clean) */}
-      <div className="hidden sm:block fixed bottom-3 right-3 z-[45]">
+      <div className="hidden lg:block fixed bottom-3 right-3 z-[45]">
         <div className="bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-full border border-black/[0.08] shadow-lg flex items-center gap-2 text-xs font-sans transition-all hover:bg-white">
           <span className="flex items-center gap-1 font-bold text-[#0B124D] text-[11px]">
             <span className={`w-2 h-2 rounded-full ${isOff ? 'bg-slate-300' : 'bg-[#FF633C] animate-pulse'}`} />
