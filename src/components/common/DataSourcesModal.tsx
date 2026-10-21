@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
 import { Language } from '../../types';
+import {
+  MODELLED_KHOROO_COUNT,
+  SAMPLE_INCIDENT_COUNT,
+  TOTAL_HISTORICAL_INCIDENTS,
+  TOTAL_KHOROO_COUNT,
+} from '../../data/ubGeoData';
+import { useLiveWeather } from '../../hooks/liveWeather';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface DataSourcesModalProps {
   isOpen: boolean;
@@ -13,6 +21,10 @@ export const DataSourcesModal: React.FC<DataSourcesModalProps> = ({
   language,
 }) => {
   const [activeTab, setActiveTab] = useState<'sources' | 'quality' | 'demo' | 'admin'>('sources');
+  const live = useLiveWeather();
+  const modelledShare = Math.round((MODELLED_KHOROO_COUNT / TOTAL_KHOROO_COUNT) * 100);
+
+  useEscapeKey(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -68,7 +80,15 @@ export const DataSourcesModal: React.FC<DataSourcesModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-[#0B124D]/60 backdrop-blur-xs">
+    <div
+      className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-[#0B124D]/60 backdrop-blur-xs"
+      role="dialog"
+      aria-modal="true"
+      aria-label={language === 'mn' ? 'Өгөгдлийн эх сурвалж ба ил тод байдал' : 'Data provenance and governance'}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-[#0B124D]/10 max-h-[90vh] flex flex-col overflow-hidden animate-pop-in">
         
         {/* Header */}
@@ -82,7 +102,9 @@ export const DataSourcesModal: React.FC<DataSourcesModalProps> = ({
             </h3>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label={language === 'mn' ? 'Хаах' : 'Close'}
             className="w-9 h-9 rounded-full bg-[#F7F8FA] hover:bg-slate-200 text-[#72778A] hover:text-[#0B124D] flex items-center justify-center font-bold"
           >
             ✕
@@ -173,29 +195,51 @@ export const DataSourcesModal: React.FC<DataSourcesModalProps> = ({
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3 bg-[#F7F8FA] rounded-xl border border-slate-200">
-                  <span className="text-[10px] text-[#72778A] block">Шинжилсэн бичлэг</span>
-                  <span className="font-mono text-lg font-bold text-[#0B124D]">1,937</span>
+                  <span className="text-[10px] text-[#72778A] block">
+                    {language === 'mn' ? 'Дүүргийн дуудлагын нэгтгэл' : 'Aggregated district call log'}
+                  </span>
+                  <span className="font-mono text-lg font-bold text-[#0B124D]">
+                    {TOTAL_HISTORICAL_INCIDENTS.toLocaleString()}
+                  </span>
                 </div>
                 <div className="p-3 bg-[#F7F8FA] rounded-xl border border-slate-200">
-                  <span className="text-[10px] text-[#72778A] block">Орон зайн хамралт</span>
-                  <span className="font-mono text-lg font-bold text-[#12B89A]">98.4%</span>
+                  <span className="text-[10px] text-[#72778A] block">
+                    {language === 'mn' ? 'Дэлгэрэнгүй дүрслэлийн бичлэг' : 'Detailed incident records'}
+                  </span>
+                  <span className="font-mono text-lg font-bold text-[#0B124D]">{SAMPLE_INCIDENT_COUNT}</span>
                 </div>
                 <div className="p-3 bg-[#F7F8FA] rounded-xl border border-slate-200">
-                  <span className="text-[10px] text-[#72778A] block">Дутуу утга (Missing)</span>
-                  <span className="font-mono text-lg font-bold text-[#FF633C]">1.6%</span>
+                  <span className="text-[10px] text-[#72778A] block">
+                    {language === 'mn' ? 'Загварчилсан хороо' : 'Modelled khoroos'}
+                  </span>
+                  <span className="font-mono text-lg font-bold text-[#FF633C]">
+                    {modelledShare}%
+                  </span>
+                  <span className="text-[10px] text-[#72778A] block">
+                    {MODELLED_KHOROO_COUNT}/{TOTAL_KHOROO_COUNT} {language === 'mn' ? 'хороо' : 'khoroos'}
+                  </span>
                 </div>
                 <div className="p-3 bg-[#F7F8FA] rounded-xl border border-slate-200">
-                  <span className="text-[10px] text-[#72778A] block">Сүүлийн шалгалт</span>
-                  <span className="font-mono text-xs font-bold text-[#0B124D]">2026-09-30</span>
+                  <span className="text-[10px] text-[#72778A] block">
+                    {language === 'mn' ? 'Цаг агаарын шинэчлэл' : 'Weather refresh'}
+                  </span>
+                  <span className="font-mono text-xs font-bold text-[#0B124D]">{live.lastUpdated}</span>
+                  <span className="text-[10px] text-[#72778A] block">
+                    {live.isLive
+                      ? 'Open-Meteo · LIVE'
+                      : language === 'mn' ? 'Сүртелц утга' : 'Modelled fallback value'}
+                  </span>
                 </div>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-[#72778A] leading-relaxed">
                 <span className="font-bold text-[#0B124D] block mb-1">
-                  Өгөгдлийн бүрэн бүтэн байдлын дүрэм:
+                  {language === 'mn' ? 'Өгөгдлийн бүрэн бүтэн байдлын дүрэм:' : 'Data integrity rule:'}
                 </span>
                 <p>
-                  "Энэ хэсгийн өгөгдөл хангалтгүй тул эрсдэлийн үзүүлэлт хязгаарлагдмал байна." Хэрэв дүүргийн аль нэг хороонд замын координат эсвэл халаалтын бүртгэл дутуу байвал бид хийсвэрээр таамаглахгүй бөгөөд тухайн бүсийг хязгаарлагдмал өгөгдөлтэй гэж тэмдэглэдэг.
+                  {language === 'mn'
+                    ? '"Энэ хэсгийн өгөгдөл хангалтгүй тул эрсдэлийн үзүүлэлт хязгаарлагдмал байна." Хэрэв дүүргийн аль нэг хороонд замын координат эсвэл халаалтын бүртгэл дутуу байвал бид хийсвэрээр таамаглахгүй бөгөөд тухайн бүсийг хязгаарлагдмал өгөгдөлтэй гэж тэмдэглэдэг.'
+                    : '"Insufficient coverage for this area, so the risk indicator is flagged as limited." If a khoroo is missing road coordinates or heating records we do not guess — the area is labelled as carrying partial data instead.'}
                 </p>
               </div>
             </div>
@@ -215,7 +259,9 @@ export const DataSourcesModal: React.FC<DataSourcesModalProps> = ({
                     : 'We never fabricate production metrics invisibly. Until official agency dispatch APIs are provisioned, all demonstration sets are clearly quarantined under DEMO DATA.'}
                 </p>
                 <p className="text-xs">
-                  Аппликэйшны арын архитектур нь ОБЕГ эсвэл хотын захиргааны бодит мэдээллийн сантай шууд холбогдоход интерфэйсийг дахин өөрчлөх шаардлагагүйгээр бүтээгдсэн.
+                  {language === 'mn'
+                    ? 'Аппликэйшны арын архитектур нь ОБЕГ эсвэл хотын захиргааны бодит мэдээллийн сантай шууд холбогдоход интерфэйсийг дахин өөрчлөх шаардлагагүйгээр бүтээгдсэн.'
+                    : 'The backend architecture is built so that connecting a live NEMA or city hall data source requires no interface rewrite.'}
                 </p>
               </div>
             </div>
@@ -225,7 +271,9 @@ export const DataSourcesModal: React.FC<DataSourcesModalProps> = ({
           {activeTab === 'admin' && (
             <div className="space-y-4">
               <p className="text-xs text-[#72778A]">
-                Төрийн болон эрдэм шинжилгээний байгууллагуудад зориулсан REST/GeoJSON дата интеграцийн интерфэйс.
+                {language === 'mn'
+                  ? 'Төрийн болон эрдэм шинжилгээний байгууллагуудад зориулсан REST/GeoJSON дата интеграцийн интерфэйс.'
+                  : 'REST/GeoJSON integration interface intended for government and research institutions.'}
               </p>
               <div className="p-3 bg-slate-900 text-slate-200 rounded-xl font-mono text-[11px] space-y-1">
                 <div className="text-emerald-400">POST /api/v1/incidents/batch-sync</div>

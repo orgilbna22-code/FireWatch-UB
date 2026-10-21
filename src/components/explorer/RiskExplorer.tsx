@@ -2,16 +2,41 @@ import React, { useState } from 'react';
 import { DistrictData, Language, RiskModelWeights } from '../../types';
 import { DEFAULT_RISK_WEIGHTS, RISK_VARIABLES_METADATA } from '../../data/riskConfig';
 import { UB_DISTRICTS } from '../../data/ubGeoData';
+import { useLiveWeather } from '../../hooks/liveWeather';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface RiskExplorerProps {
   language: Language;
   onNavigateToMapWithDistrict?: (districtId: string) => void;
 }
 
+const clampScore = (value: number) => Math.min(100, Math.max(0, Math.round(value)));
+
+const MAX_INCIDENT_DENSITY = Math.max(
+  ...UB_DISTRICTS.map((d) => d.historicalIncidentsCount / d.areaKm2)
+);
+
+const ROAD_CONSTRAINT_BY_GRADE: Record<DistrictData['roadAccessibilityGrade'], number> = {
+  A: 25,
+  B: 45,
+  C: 68,
+  D: 85,
+};
+
+/** Contribution labels are authored per district, so match on either language. */
+const pickFactor = (district: DistrictData, keywords: string[]): number | undefined => {
+  const match = district.contributions.find((c) => {
+    const label = `${c.nameEn} ${c.nameMn}`.toLowerCase();
+    return keywords.some((k) => label.includes(k));
+  });
+  return match?.score;
+};
+
 export const RiskExplorer: React.FC<RiskExplorerProps> = ({
   language,
   onNavigateToMapWithDistrict,
 }) => {
+  const live = useLiveWeather();
   const [weights, setWeights] = useState<RiskModelWeights>({ ...DEFAULT_RISK_WEIGHTS });
   const [activeFactors, setActiveFactors] = useState<{ [key: string]: boolean }>({
     incidentHistory: true,
@@ -36,14 +61,21 @@ export const RiskExplorer: React.FC<RiskExplorerProps> = ({
 
     const totalWeight = effInc + effPop + effSta + effGer + effRoad + effWeath || 1;
 
+    const seasonalWeatherFactor = live.isLive ? clampScore(live.fireWeatherIndex) : 55;
+
     return UB_DISTRICTS.map((d) => {
-      // Find raw contribution scores
-      const incScore = d.contributions.find((c) => c.nameEn.includes('Incident'))?.score || 50;
-      const popScore = d.contributions.find((c) => c.nameEn.includes('Population'))?.score || 50;
-      const staScore = d.contributions.find((c) => c.nameEn.includes('Station') || c.nameEn.includes('Proximity'))?.score || 50;
+      // Curated factor scores, matched on either language; fall back to the
+      // district's own measured fields when a factor is absent from its card.
+      const incScore =
+        pickFactor(d, ['incident', 'дуудлага']) ??
+        clampScore(((d.historicalIncidentsCount / d.areaKm2) / MAX_INCIDENT_DENSITY) * 100);
+      const popScore = pickFactor(d, ['population', 'хүн амын']) ?? clampScore((d.population / d.areaKm2 / 8000) * 100);
+      const staScore = pickFactor(d, ['station', 'proximity', 'ангийн зай']) ?? clampScore((d.nearestStationDistKm / 12) * 100);
       const gerScore = d.gerHouseholdPercent;
-      const roadScore = d.roadAccessibilityGrade === 'D' ? 85 : d.roadAccessibilityGrade === 'C' ? 68 : d.roadAccessibilityGrade === 'B' ? 45 : 25;
-      const weathScore = d.contributions.find((c) => c.nameEn.includes('Seasonal'))?.score || 60;
+      const roadScore = ROAD_CONSTRAINT_BY_GRADE[d.roadAccessibilityGrade];
+      const weathScore =
+        pickFactor(d, ['seasonal', 'улирлын']) ??
+        Math.round(0.5 * seasonalWeatherFactor + 0.5 * Math.min(100, d.gerHouseholdPercent + 18));
 
       const dynamicScore = Math.min(
         100,
@@ -82,6 +114,8 @@ export const RiskExplorer: React.FC<RiskExplorerProps> = ({
       seasonalWeather: true,
     });
   };
+
+  useEscapeKey(showMethodologyModal, () => setShowMethodologyModal(false));
 
   return (
     <div className="w-full min-h-[calc(100vh-65px)] bg-[#F7F8FA] p-4 sm:p-6 lg:p-8">
@@ -387,7 +421,9 @@ export const RiskExplorer: React.FC<RiskExplorerProps> = ({
                             {language === 'mn' ? district.nameMn : district.nameEn}
                           </span>
                           <span className="text-[10px] font-mono text-[#72778A]">
-                            {district.population.toLocaleString()} хүн ам · {district.gerHouseholdPercent}% гэр
+                            {district.population.toLocaleString()}{' '}
+                            {language === 'mn' ? 'хүн ам' : 'residents'} · {district.gerHouseholdPercent}%{' '}
+                            {language === 'mn' ? 'гэр' : 'ger'}
                           </span>
                         </div>
 
@@ -452,7 +488,15 @@ export const RiskExplorer: React.FC<RiskExplorerProps> = ({
 
       {/* Methodology Modal */}
       {showMethodologyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+        <div
+          className="fixed inset-0 z-[1250] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-label={language === 'mn' ? 'Арга зүй ба тооцооллын стандарт' : 'Methodology and model formulas'}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowMethodologyModal(false);
+          }}
+        >
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-[#0B124D]/10 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-[#0B124D]/10 mb-4">
               <h3 className="font-editorial text-xl font-bold text-[#0B124D]">
@@ -460,6 +504,7 @@ export const RiskExplorer: React.FC<RiskExplorerProps> = ({
               </h3>
               <button
                 onClick={() => setShowMethodologyModal(false)}
+                aria-label={language === 'mn' ? 'Хаах' : 'Close'}
                 className="w-8 h-8 rounded-full bg-[#F7F8FA] hover:bg-slate-200 flex items-center justify-center text-[#72778A] font-bold"
               >
                 ✕
@@ -478,7 +523,7 @@ export const RiskExplorer: React.FC<RiskExplorerProps> = ({
                   <div key={m.code} className="p-3 rounded-xl bg-[#F7F8FA] border border-[#0B124D]/5">
                     <div className="flex items-center justify-between font-mono text-[11px] font-bold text-[#0B124D] mb-1">
                       <span>{m.code} · {language === 'mn' ? m.nameMn : m.nameEn}</span>
-                      <span>{m.weightPercent}% жин</span>
+                      <span>{m.weightPercent}% {language === 'mn' ? 'жин' : 'weight'}</span>
                     </div>
                     <code className="block bg-white p-1.5 rounded font-mono text-[10px] text-[#FF633C] mb-1 border border-[#0B124D]/5">
                       {m.normalizationFormula}

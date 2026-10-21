@@ -138,6 +138,41 @@ body {
   line-height: 1.4 !important;
 }
 
+/* Continuous thermal risk surface + its crisp DOM hotspot labels */
+.fw-thermal-canvas {
+  pointer-events: none;
+  position: absolute;
+  z-index: 350;
+  will-change: transform;
+}
+.fw-heat-label-wrap {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.fw-heat-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: rgba(11, 18, 77, 0.78);
+  border: 1px solid rgba(255, 99, 60, 0.55);
+  border-radius: 999px;
+  padding: 3px 8px;
+  backdrop-filter: blur(4px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+.fw-heat-label b {
+  color: #ff8b66;
+  font-weight: 800;
+}
+
 /* Mobile Touch & Safe Area Utilities */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 1rem);
@@ -515,4 +550,79 @@ body {
   border-bottom-color: #FFFFFF;
   border-left-color: #FFFFFF;
   border-right-color: #FFFFFF;
+}
+
+/* ==========================================================
+   PRINT
+   Reports print as a clean light document; the family
+   evacuation card prints alone on one sheet.
+   ========================================================== */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #FFFFFF !important;
+    overflow: visible;
+  }
+
+  .leaflet-container,
+  .fire-ambient-bg,
+  canvas[data-decorative] {
+    display: none !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    break-after: avoid;
+  }
+
+  tr,
+  li,
+  img {
+    break-inside: avoid;
+  }
+
+  body:has(#evac-card-print) #root * {
+    visibility: hidden;
+  }
+
+  body:has(#evac-card-print) #evac-card-print,
+  body:has(#evac-card-print) #evac-card-print * {
+    visibility: visible;
+    background-color: #FFFFFF !important;
+    background-image: none !important;
+    color: #12152A !important;
+    border-color: rgba(11, 18, 77, 0.28) !important;
+    box-shadow: none !important;
+  }
+
+  body:has(#evac-card-print) #evac-card-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: 1.5pt solid #0B124D;
+    border-radius: 0;
+    break-inside: avoid;
+  }
+
+  /* Emergency numbers keep their ink on paper so they stay findable at a glance */
+  body:has(#evac-card-print) #evac-card-print [data-print-tone='fire'] {
+    background-color: #FEE2E2 !important;
+    color: #B91C1C !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body:has(#evac-card-print) #evac-card-print [data-print-tone='medical'] {
+    background-color: #FEF3C7 !important;
+    color: #854D0E !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }

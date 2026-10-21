@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { IncidentRecord, Language } from '../../types';
 import { DEMO_HISTORICAL_INCIDENTS } from '../../data/ubGeoData';
 import { getTranslation } from '../../i18n/translations';
@@ -15,6 +15,7 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
   onOpenDemoInfo,
 }) => {
   const t = getTranslation(language);
+  const isMn = language === 'mn';
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeIncident, setActiveIncident] = useState<IncidentRecord | null>(
@@ -32,11 +33,41 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
     { id: 'commercial', nameMn: 'Аж ахуйн нэгж', nameEn: 'Commercial' },
   ];
 
-  const filteredIncidents = DEMO_HISTORICAL_INCIDENTS.filter((inc) => {
-    const matchYear = selectedYear === 'all' || inc.date.startsWith(selectedYear);
-    const matchCategory = selectedCategory === 'all' || inc.category === selectedCategory;
-    return matchYear && matchCategory;
-  });
+  const filteredIncidents = useMemo(
+    () =>
+      DEMO_HISTORICAL_INCIDENTS.filter((inc) => {
+        const matchYear = selectedYear === 'all' || inc.date.startsWith(selectedYear);
+        const matchCategory = selectedCategory === 'all' || inc.category === selectedCategory;
+        return matchYear && matchCategory;
+      }),
+    [selectedYear, selectedCategory]
+  );
+
+  // Keep the detail card meaningful when the active row is filtered away
+  const shownIncident =
+    activeIncident && filteredIncidents.some((i) => i.id === activeIncident.id)
+      ? activeIncident
+      : filteredIncidents[0] ?? null;
+
+  const categoryLabel = (cat: IncidentRecord['category']) =>
+    cat === 'residential_ger'
+      ? (isMn ? 'Гэр хороолол' : 'Ger settlement')
+      : cat === 'grass_forest'
+        ? (isMn ? 'Шар өвс / Ой' : 'Brush & forest')
+        : cat === 'electrical'
+          ? (isMn ? 'Цахилгаан' : 'Electrical')
+          : cat === 'commercial'
+            ? (isMn ? 'Аж ахуйн нэгж' : 'Commercial')
+            : (isMn ? 'Орон сууц' : 'Apartment');
+
+  const severityLabel = (sev: IncidentRecord['severity']) =>
+    sev === 'critical'
+      ? (isMn ? 'ХҮНД' : 'CRITICAL')
+      : sev === 'moderate'
+        ? (isMn ? 'ДУНД' : 'MODERATE')
+        : (isMn ? 'ХӨНГӨН' : 'MINOR');
+
+  const khorooLabel = (n: number) => (isMn ? `${n}-р хороо` : `Khoroo ${n}`);
 
   return (
     <div className="w-full min-h-[calc(100vh-65px)] bg-[#F7F8FA] p-4 sm:p-6 lg:p-8">
@@ -131,10 +162,18 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredIncidents.map((inc) => {
-                    const isSelected = activeIncident?.id === inc.id;
+                    const isSelected = shownIncident?.id === inc.id;
                     return (
                       <tr
                         key={inc.id}
+                        tabIndex={0}
+                        aria-selected={isSelected}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setActiveIncident(inc);
+                          }
+                        }}
                         onClick={() => setActiveIncident(inc)}
                         className={`hover:bg-[#F7F8FA] cursor-pointer transition-colors ${
                           isSelected ? 'bg-orange-50/70 font-semibold' : ''
@@ -147,19 +186,9 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
                           <span className="font-bold text-[#0B124D]">
                             {language === 'mn' ? inc.districtNameMn : inc.districtNameEn}
                           </span>{' '}
-                          <span className="text-[#72778A] text-[11px]">
-                            ({inc.khoroo}-р хороо)
-                          </span>
+                          <span className="text-[#72778A] text-[11px]">({khorooLabel(inc.khoroo)})</span>
                         </td>
-                        <td className="py-3 px-3 text-[#72778A]">
-                          {inc.category === 'residential_ger'
-                            ? (language === 'mn' ? 'Гэр хороолол' : 'Ger')
-                            : inc.category === 'grass_forest'
-                            ? (language === 'mn' ? 'Шар өвс' : 'Brush')
-                            : inc.category === 'electrical'
-                            ? (language === 'mn' ? 'Цахилгаан' : 'Electrical')
-                            : (language === 'mn' ? 'Орон сууц' : 'Apartment')}
-                        </td>
+                        <td className="py-3 px-3 text-[#72778A]">{categoryLabel(inc.category)}</td>
                         <td className="py-3 px-3">
                           <span
                             className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
@@ -170,12 +199,21 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
                                 : 'bg-slate-100 text-[#72778A]'
                             }`}
                           >
-                            {inc.severity.toUpperCase()}
+                            {severityLabel(inc.severity)}
                           </span>
                         </td>
                       </tr>
                     );
                   })}
+                  {filteredIncidents.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-[#72778A]">
+                        {isMn
+                          ? 'Эдгээр шүүлтүүрт тохирох бичлэг олдсонгүй.'
+                          : 'No records match these filters.'}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -183,16 +221,16 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
 
           {/* Right Selected Incident Detail Card (5 cols) */}
           <div className="lg:col-span-5">
-            {activeIncident ? (
+            {shownIncident ? (
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[#0B124D]/8 shadow-xs sticky top-20 space-y-6">
                 <div>
                   <div className="flex items-center justify-between text-xs font-mono text-[#72778A] mb-1">
-                    <span>{activeIncident.id}</span>
-                    <span>{activeIncident.date}</span>
+                    <span>{shownIncident.id}</span>
+                    <span>{shownIncident.date}</span>
                   </div>
                   <h3 className="font-editorial text-2xl font-bold text-[#0B124D]">
-                    {language === 'mn' ? activeIncident.districtNameMn : activeIncident.districtNameEn},{' '}
-                    {activeIncident.khoroo}-р хороо
+                    {language === 'mn' ? shownIncident.districtNameMn : shownIncident.districtNameEn},{' '}
+                    {khorooLabel(shownIncident.khoroo)}
                   </h3>
                 </div>
 
@@ -202,7 +240,7 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
                     {language === 'mn' ? 'Урьдчилсан шалтгаан & Шинж чанар' : 'Probable Cause Vector'}
                   </span>
                   <p className="text-sm font-semibold text-[#0B124D]">
-                    {language === 'mn' ? activeIncident.causeGuessMn : activeIncident.causeGuessEn}
+                    {isMn ? shownIncident.causeGuessMn : shownIncident.causeGuessEn}
                   </p>
                 </div>
 
@@ -212,7 +250,7 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
                       {language === 'mn' ? 'Координат' : 'Coordinates'}
                     </span>
                     <span className="font-mono font-bold text-[#0B124D]">
-                      {activeIncident.coordinates[0].toFixed(4)}, {activeIncident.coordinates[1].toFixed(4)}
+                      {shownIncident.coordinates[0].toFixed(4)}, {shownIncident.coordinates[1].toFixed(4)}
                     </span>
                   </div>
 
@@ -221,23 +259,23 @@ export const IncidentHistory: React.FC<IncidentHistoryProps> = ({
                       {language === 'mn' ? 'Ойролцоо хохирол' : 'Est. Damage (MNT)'}
                     </span>
                     <span className="font-mono font-bold text-[#FF633C]">
-                      ₮{activeIncident.estimatedDamageMnt.toLocaleString()}
+                      ₮{shownIncident.estimatedDamageMnt.toLocaleString()}
                     </span>
                   </div>
                 </div>
 
                 {onNavigateToMapWithDistrict && (
                   <button
-                    onClick={() => onNavigateToMapWithDistrict(activeIncident.districtId)}
+                    onClick={() => onNavigateToMapWithDistrict(shownIncident.districtId)}
                     className="w-full py-2.5 bg-[#0B124D] hover:bg-[#11166B] text-white text-xs font-bold rounded-xl transition-colors text-center"
                   >
-                    {language === 'mn' ? 'Энэ дүүргийг газрын зураг дээр шинжлэх' : 'Inspect Area on Risk Map'} →
+                    {isMn ? 'Энэ дүүргийг газрын зураг дээр шинжлэх' : 'Inspect area on risk map'} →
                   </button>
                 )}
               </div>
             ) : (
               <div className="p-8 text-center bg-white rounded-2xl text-[#72778A] text-xs">
-                {language === 'mn' ? 'Тохиолдол сонгоно уу' : 'Select an incident record to inspect'}
+                {isMn ? 'Тохиолдол сонгоно уу' : 'Select an incident record to inspect'}
               </div>
             )}
           </div>

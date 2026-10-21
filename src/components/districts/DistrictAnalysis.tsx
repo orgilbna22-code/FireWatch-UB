@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { KhorooData, Language } from '../../types';
-import { UB_DISTRICTS } from '../../data/ubGeoData';
-import { getKhoroosByDistrict } from '../../data/ubKhorooData';
+import { UB_DISTRICTS, getKhoroosByDistrict, TOTAL_KHOROO_COUNT } from '../../data/ubGeoData';
 import { getTranslation } from '../../i18n/translations';
+import { distanceLabel, khorooLabel, trendLabel, unitKmSquared, unitStations } from '../../i18n/labels';
 import { RealPhotoModal } from '../common/RealPhotoModal';
 import { RiskBreakdownList } from '../common/RiskBreakdownList';
 
@@ -48,7 +48,9 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
               {language === 'mn' ? 'ДҮҮРЭГ БА ХОРООДЫН ДҮН ШИНЖИЛГЭЭ' : 'DISTRICT & KHOROO INTELLIGENCE REPORT'}
             </span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-[#0B124D]/5 font-mono text-[#0B124D]">
-              9 Дүүрэг • 204 Хороо
+              {language === 'mn'
+                ? `${UB_DISTRICTS.length} Дүүрэг • ${TOTAL_KHOROO_COUNT} Хороо`
+                : `${UB_DISTRICTS.length} Districts • ${TOTAL_KHOROO_COUNT} Khoroos`}
             </span>
           </div>
           <h1 className="font-editorial text-2xl sm:text-3xl md:text-4xl font-bold text-[#0B124D]">
@@ -158,7 +160,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                     {language === 'mn' ? 'Газар нутаг' : 'Area Size'}
                   </span>
                   <span className="font-mono text-lg font-bold text-[#0B124D]">
-                    {selectedDistrict.areaKm2} км²
+                    {selectedDistrict.areaKm2} {unitKmSquared(language === 'mn')}
                   </span>
                 </div>
                 <div>
@@ -256,7 +258,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                   {language === 'mn' ? 'Үйлчлэх гал түймрийн анги' : 'Active Fire Stations'}
                 </span>
                 <span className="font-mono text-sm font-bold text-[#0B124D]">
-                  {selectedDistrict.fireStationsCount} анги
+                  {unitStations(selectedDistrict.fireStationsCount, language === 'mn')}
                 </span>
               </div>
 
@@ -265,7 +267,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                   {language === 'mn' ? 'Ойрын анги хүртэлх зай' : 'Avg Nearest Station Distance'}
                 </span>
                 <span className="font-mono text-sm font-bold text-[#0B124D]">
-                  ~{selectedDistrict.nearestStationDistKm} км
+                  {distanceLabel(selectedDistrict.nearestStationDistKm, language === 'mn')}
                 </span>
               </div>
 
@@ -274,7 +276,8 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                   {language === 'mn' ? 'Замын нэвтрэлтийн зэрэг' : 'Road Access Grade'}
                 </span>
                 <span className="font-mono text-sm font-bold text-[#FF633C]">
-                  {selectedDistrict.roadAccessibilityGrade} түвшин
+                  {selectedDistrict.roadAccessibilityGrade}{' '}
+                  {language === 'mn' ? 'түвшин' : 'grade'}
                 </span>
               </div>
 
@@ -283,9 +286,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                   {language === 'mn' ? 'Эрсдэлийн хандлага' : 'Historical Trend'}
                 </span>
                 <span className="text-xs font-bold text-[#0B124D] uppercase">
-                  {selectedDistrict.trend === 'increasing'
-                    ? (language === 'mn' ? 'Өсөх хандлагатай' : 'Increasing')
-                    : (language === 'mn' ? 'Тогтвортой' : 'Stable')}
+                  {trendLabel(selectedDistrict.trend, language === 'mn')}
                 </span>
               </div>
             </div>
@@ -341,7 +342,9 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                   {language === 'mn' ? 'ДООД ТҮВШИН: ХОРООД' : 'SUB-DISTRICT DRILL-DOWN'}
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-slate-100 font-mono text-[10px] text-[#0B124D]">
-                  {filteredKhoroos.length} хороо жагсаав
+                  {language === 'mn'
+                    ? `${filteredKhoroos.length} хороо харуулав`
+                    : `${filteredKhoroos.length} khoroos shown`}
                 </span>
               </div>
               <h3 className="font-editorial text-2xl font-bold text-[#0B124D]">
@@ -361,7 +364,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                     : 'text-[#72778A] hover:text-[#0B124D]'
                 }`}
               >
-                Бүгд ({districtKhoroos.length})
+                {language === 'mn' ? 'Бүгд' : 'All'} ({districtKhoroos.length})
               </button>
               <button
                 onClick={() => setKhorooFilter('high')}
@@ -371,7 +374,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                     : 'text-[#72778A] hover:text-[#0B124D]'
                 }`}
               >
-                Өндөр эрсдэлтэй
+                {language === 'mn' ? 'Өндөр эрсдэлтэй' : 'High risk'}
               </button>
               <button
                 onClick={() => setKhorooFilter('ger')}
@@ -381,7 +384,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                     : 'text-[#72778A] hover:text-[#0B124D]'
                 }`}
               >
-                Гэр хороолол
+                {language === 'mn' ? 'Гэр хороолол' : 'Ger areas'}
               </button>
               <button
                 onClick={() => setKhorooFilter('apt')}
@@ -391,7 +394,7 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                     : 'text-[#72778A] hover:text-[#0B124D]'
                 }`}
               >
-                Орон сууц
+                {language === 'mn' ? 'Орон сууц' : 'Apartments'}
               </button>
             </div>
           </div>
@@ -413,7 +416,20 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <span className="text-[10px] font-mono text-[#72778A] uppercase block">
-                          {selectedDistrict.nameMn} • ХОРОО
+                          {language === 'mn' ? selectedDistrict.nameMn : selectedDistrict.nameEn} ·{' '}
+                          {khorooLabel(kh.khorooNumber, language === 'mn')}
+                          {kh.isModelled && (
+                            <span
+                              className="ml-1 px-1 rounded bg-amber-100 text-amber-800 normal-case"
+                              title={
+                                language === 'mn'
+                                  ? 'Загварчилсан үзүүлэлт ( суурь өгөгдөл дутуу )'
+                                  : 'Modelled estimate — base record incomplete'
+                              }
+                            >
+                              {language === 'mn' ? 'загвар' : 'model'}
+                            </span>
+                          )}
                         </span>
                         <h4 className="font-bold text-sm text-[#0B124D] group-hover:text-[#FF633C] transition-colors leading-snug">
                           {language === 'mn' ? kh.nameMn : kh.nameEn}
@@ -430,20 +446,32 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
 
                     <div className="grid grid-cols-2 gap-2 text-[11px] pt-2 border-t border-black/[0.04]">
                       <div>
-                        <span className="text-[#72778A] block">Өрхийн тоо:</span>
-                        <b className="font-mono text-[#0B124D]">{kh.households.toLocaleString()} өрх</b>
+                        <span className="text-[#72778A] block">
+                          {language === 'mn' ? 'Өрхийн тоо:' : 'Households:'}
+                        </span>
+                        <b className="font-mono text-[#0B124D]">
+                          {kh.households.toLocaleString()}
+                        </b>
                       </div>
                       <div>
-                        <span className="text-[#72778A] block">Гэр хороолол:</span>
+                        <span className="text-[#72778A] block">
+                          {language === 'mn' ? 'Гэр хороолол:' : 'Ger share:'}
+                        </span>
                         <b className="font-mono text-[#FF633C]">{kh.gerHouseholdPercent}%</b>
                       </div>
                       <div>
-                        <span className="text-[#72778A] block">Гидрант:</span>
-                        <b className="font-mono text-[#0B124D]">{kh.fireHydrantCount} ширхэг</b>
+                        <span className="text-[#72778A] block">
+                          {language === 'mn' ? 'Гидрант:' : 'Hydrants:'}
+                        </span>
+                        <b className="font-mono text-[#0B124D]">{kh.fireHydrantCount}</b>
                       </div>
                       <div>
-                        <span className="text-[#72778A] block">Хүрэх хугацаа:</span>
-                        <b className="font-mono text-[#E93B2F]">~{kh.avgResponseTimeMin} мин</b>
+                        <span className="text-[#72778A] block">
+                          {language === 'mn' ? 'Хүрэх хугацаа:' : 'Response:'}
+                        </span>
+                        <b className="font-mono text-[#E93B2F]">
+                          ~{kh.avgResponseTimeMin} {language === 'mn' ? 'мин' : 'min'}
+                        </b>
                       </div>
                     </div>
                   </div>
@@ -454,14 +482,14 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
                       className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#FF633C] hover:text-white border border-black/[0.08] text-[11px] font-bold text-[#0B124D] transition-colors flex items-center gap-1"
                     >
                       <span>📷</span>
-                      <span>Бодит зураг</span>
+                      <span>{language === 'mn' ? 'Бодит зураг' : 'Photo'}</span>
                     </button>
                     {onNavigateToMapWithDistrict && (
                       <button
                         onClick={() => onNavigateToMapWithDistrict(selectedDistrict.id)}
                         className="flex-1 py-1.5 rounded-xl bg-[#0B124D] hover:bg-[#11166B] text-white text-[11px] font-semibold text-center transition-colors shadow-xs"
                       >
-                        Газрын зурагт харах
+                        {language === 'mn' ? 'Газрын зурагт харах' : 'View on map'}
                       </button>
                     )}
                   </div>
@@ -478,8 +506,12 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
         <RealPhotoModal
           isOpen={Boolean(inspectingKhoroo)}
           onClose={() => setInspectingKhoroo(null)}
-          title={inspectingKhoroo.nameMn}
-          subtitle={`${selectedDistrict.nameMn} дүүрэг • ${inspectingKhoroo.khorooNumber}-р хороо`}
+          title={language === 'mn' ? inspectingKhoroo.nameMn : inspectingKhoroo.nameEn}
+          subtitle={
+            language === 'mn'
+              ? `${selectedDistrict.nameMn} дүүрэг • ${inspectingKhoroo.khorooNumber}-р хороо`
+              : `${selectedDistrict.nameEn} district • Khoroo ${inspectingKhoroo.khorooNumber}`
+          }
           photoUrl={inspectingKhoroo.photoUrl}
           satelliteUrl={selectedDistrict.satellitePhoto}
           descriptionMn={inspectingKhoroo.primaryRiskFactorMn}
@@ -487,10 +519,22 @@ export const DistrictAnalysis: React.FC<DistrictAnalysisProps> = ({
           riskScore={inspectingKhoroo.riskScore}
           language={language}
           metrics={[
-            { label: 'Эрсдэлийн индекс', value: `${inspectingKhoroo.riskScore}/100` },
-            { label: 'Нийт өрх', value: `${inspectingKhoroo.households.toLocaleString()}` },
-            { label: 'Гэр хороолол', value: `${inspectingKhoroo.gerHouseholdPercent}%` },
-            { label: 'Гидрант', value: `${inspectingKhoroo.fireHydrantCount} ширхэг` },
+            {
+              label: language === 'mn' ? 'Эрсдэлийн индекс' : 'Risk index',
+              value: `${inspectingKhoroo.riskScore}/100`,
+            },
+            {
+              label: language === 'mn' ? 'Нийт өрх' : 'Households',
+              value: `${inspectingKhoroo.households.toLocaleString()}`,
+            },
+            {
+              label: language === 'mn' ? 'Гэр хороолол' : 'Ger share',
+              value: `${inspectingKhoroo.gerHouseholdPercent}%`,
+            },
+            {
+              label: language === 'mn' ? 'Гидрант' : 'Hydrants',
+              value: `${inspectingKhoroo.fireHydrantCount} ${language === 'mn' ? 'ширхэг' : 'pcs'}`,
+            },
           ]}
         />
       )}

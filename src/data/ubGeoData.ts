@@ -1,7 +1,6 @@
-import { DistrictData, FireStation, IncidentRecord, MonthRiskData, WeatherData } from '../types';
-import { UB_KHOROOS, getKhoroosByDistrict } from './ubKhorooData';
-
-export { UB_KHOROOS, getKhoroosByDistrict };
+import { DistrictData, FireStation, IncidentRecord, KhorooData, MonthRiskData, WeatherData } from '../types';
+import { UB_KHOROOS_CURATED } from './ubKhorooData';
+import { khorooRiskLevel, synthesizeKhoroos } from './ubKhorooGenerated';
 
 // Coordinates for UB center: [47.9184, 106.9177]
 export const UB_CENTER_COORDS: [number, number] = [47.9184, 106.9177];
@@ -336,9 +335,77 @@ export const UB_DISTRICTS: DistrictData[] = [
   }
 ];
 
+// ============================================================
+// Full 204-khoroo registry: curated sample + deterministic modelled units.
+// Every khoroo's riskLevel is derived from its own score so the two never disagree.
+// ============================================================
+const UB_KHOROOS_BY_DISTRICT = new Map<string, KhorooData[]>();
+
+UB_DISTRICTS.forEach((d) => {
+  const curated = UB_KHOROOS_CURATED.filter((k) => k.districtId === d.id).map((k) => ({ ...k }));
+  const all: KhorooData[] = [...curated, ...synthesizeKhoroos(d, curated)].sort(
+    (a, b) => a.khorooNumber - b.khorooNumber
+  );
+
+  // Anchor khoroo scores to the district's own multi-factor score so the map,
+  // the list and the district page never quote two different numbers for the
+  // same ground truth. Relative ordering inside the district is preserved.
+  const totalPeople = all.reduce((s, k) => s + k.population, 0) || 1;
+  const weightedMean = all.reduce((s, k) => s + k.riskScore * k.population, 0) / totalPeople;
+  const drift = d.riskScore - weightedMean;
+  if (Math.abs(drift) > 2) {
+    all.forEach((k) => {
+      k.riskScore = Math.max(8, Math.min(97, Math.round(d.riskScore + (k.riskScore - weightedMean) * 0.85)));
+      k.riskLevel = khorooRiskLevel(k.riskScore);
+    });
+  } else {
+    all.forEach((k) => {
+      k.riskLevel = khorooRiskLevel(k.riskScore);
+    });
+  }
+
+  // Distribute the district's recorded incident total across its khoroos with
+  // largest-remainder apportionment, so the street-level list sums to exactly
+  // the number the district page quotes (plain Math.round drifts by ±a few).
+  const incidentSum = all.reduce((s, k) => s + k.historicalIncidents2024_2026, 0);
+  if (incidentSum > 0 && d.historicalIncidentsCount > 0) {
+    const exact = all.map(
+      (k) => (k.historicalIncidents2024_2026 / incidentSum) * d.historicalIncidentsCount
+    );
+    const allocated = exact.map((v) => Math.floor(v));
+    let leftover = d.historicalIncidentsCount - allocated.reduce((s, v) => s + v, 0);
+    const byFraction = exact
+      .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+      .sort((a, b) => b.frac - a.frac);
+    for (let j = 0; leftover > 0; j += 1) {
+      allocated[byFraction[j % byFraction.length].i] += 1;
+      leftover -= 1;
+    }
+    all.forEach((k, i) => {
+      k.historicalIncidents2024_2026 = allocated[i];
+    });
+  } else {
+    all.forEach((k) => {
+      k.historicalIncidents2024_2026 = 0;
+    });
+  }
+
+  UB_KHOROOS_BY_DISTRICT.set(d.id, all);
+});
+
+export const UB_KHOROOS: KhorooData[] = UB_DISTRICTS.flatMap(
+  (d) => UB_KHOROOS_BY_DISTRICT.get(d.id) ?? []
+);
+
+export const getKhoroosByDistrict = (districtId: string): KhorooData[] =>
+  UB_KHOROOS_BY_DISTRICT.get(districtId) ?? [];
+
+export const MODELLED_KHOROO_COUNT = UB_KHOROOS.filter((k) => k.isModelled).length;
+
 // Populate khoroos & real-world photos for each district
 UB_DISTRICTS.forEach((d) => {
   d.khoroos = getKhoroosByDistrict(d.id);
+  d.khoroosCount = d.khoroos.length;
   const photoMap: Record<string, { real: string; sat: string }> = {
     'bayanzurkh': {
       real: 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=1200&q=80',
@@ -503,6 +570,96 @@ export const UB_FIRE_STATIONS: FireStation[] = [
     coverageRadiusKm: 12.0,
     servingDistrictsMn: ['Налайх'],
     servingDistrictsEn: ['Nalaikh']
+  },
+  {
+    id: 'sta-22',
+    code: '22-р анги',
+    nameMn: 'Гал түймэр унтраах, аврах 22-р анги',
+    nameEn: 'Fire & Rescue Station No. 22',
+    districtId: 'bayangol',
+    addressMn: 'Баянгол дүүрэг, 11-р хороо, Дунд голын дагуу',
+    addressEn: 'Dund Gol riverside, 11th Khoroo, Bayangol',
+    coordinates: [47.9130, 106.8560],
+    vehiclesCount: 5,
+    personnelActive: 33,
+    coverageRadiusKm: 4.5,
+    servingDistrictsMn: ['Баянгол', 'Хан-Уул'],
+    servingDistrictsEn: ['Bayangol', 'Khan-Uul']
+  },
+  {
+    id: 'sta-51',
+    code: '51-р анги',
+    nameMn: 'Гал түймэр унтраах, аврах 51-р анги',
+    nameEn: 'Fire & Rescue Station No. 51',
+    districtId: 'bayanzurkh',
+    addressMn: 'Баянзүрх дүүрэг, 12-р хороо, 95-аас дээш',
+    addressEn: 'Above 95th Block, 12th Khoroo, Bayanzurkh',
+    coordinates: [47.9380, 106.9650],
+    vehiclesCount: 6,
+    personnelActive: 41,
+    coverageRadiusKm: 6.5,
+    servingDistrictsMn: ['Баянзүрх'],
+    servingDistrictsEn: ['Bayanzurkh']
+  },
+  {
+    id: 'sta-58',
+    code: '58-р анги',
+    nameMn: 'Гал түймэр унтраах, аврах 58-р анги',
+    nameEn: 'Fire & Rescue Station No. 58',
+    districtId: 'bayanzurkh',
+    addressMn: 'Баянзүрх дүүрэг, 27-р хороо, Сэвдэний зам дагуу',
+    addressEn: 'Sevdeniin Zam, 27th Khoroo, Bayanzurkh',
+    coordinates: [47.9100, 107.0350],
+    vehiclesCount: 5,
+    personnelActive: 36,
+    coverageRadiusKm: 7.0,
+    servingDistrictsMn: ['Баянзүрх', 'Сонгинохайрхан'],
+    servingDistrictsEn: ['Bayanzurkh', 'Songinokhairkhan']
+  },
+  {
+    id: 'sta-24',
+    code: '24-р анги',
+    nameMn: 'Гал түймэр унтраах, аврах 24-р анги',
+    nameEn: 'Fire & Rescue Station No. 24',
+    districtId: 'songinokhairkhan',
+    addressMn: 'Сонгинохайрхан дүүрэг, 28-р хороо, Амгалан',
+    addressEn: 'Amgalan, 28th Khoroo, Songinokhairkhan',
+    coordinates: [47.9500, 106.8500],
+    vehiclesCount: 5,
+    personnelActive: 34,
+    coverageRadiusKm: 7.5,
+    servingDistrictsMn: ['Сонгинохайрхан', 'Чингэлтэй'],
+    servingDistrictsEn: ['Songinokhairkhan', 'Chingeltei']
+  },
+  {
+    id: 'sta-31',
+    code: '31-р анги',
+    nameMn: 'Гал түймэр унтраах, аврах 31-р анги',
+    nameEn: 'Fire & Rescue Station No. 31',
+    districtId: 'baganuur',
+    addressMn: 'Багануур дүүрэг, 1-р хороо, Уурхайчдын зам',
+    addressEn: 'Uurkhachdyn Street, 1st Khoroo, Baganuur',
+    coordinates: [47.7830, 108.3520],
+    vehiclesCount: 4,
+    personnelActive: 26,
+    coverageRadiusKm: 14.0,
+    servingDistrictsMn: ['Багануур'],
+    servingDistrictsEn: ['Baganuur']
+  },
+  {
+    id: 'sta-37',
+    code: '37-р анги',
+    nameMn: 'Гал түймэр унтраах, аврах 37-р анги',
+    nameEn: 'Fire & Rescue Station No. 37',
+    districtId: 'bagakhangai',
+    addressMn: 'Багахангай дүүрэг, 1-р хороо, Өртөөний зам',
+    addressEn: 'Station Road, 1st Khoroo, Bagakhangai',
+    coordinates: [47.3330, 107.4840],
+    vehiclesCount: 3,
+    personnelActive: 21,
+    coverageRadiusKm: 12.0,
+    servingDistrictsMn: ['Багахангай'],
+    servingDistrictsEn: ['Bagakhangai']
   }
 ];
 
@@ -719,8 +876,32 @@ export const DEMO_HISTORICAL_INCIDENTS: IncidentRecord[] = [
   }
 ];
 
-export const MONTH_RISK_CALENDAR: MonthRiskData[] = [
-  {
+// ============================================================
+// City-wide statistics derived from the datasets above, so every headline
+// number on the site is computed rather than typed in.
+// ============================================================
+UB_DISTRICTS.forEach((d) => {
+  d.fireStationsCount = UB_FIRE_STATIONS.filter((s) => s.districtId === d.id).length;
+});
+
+export const TOTAL_KHOROO_COUNT = UB_KHOROOS.length;
+
+export const TOTAL_HISTORICAL_INCIDENTS = UB_DISTRICTS.reduce(
+  (s, d) => s + d.historicalIncidentsCount,
+  0
+);
+
+export const TOTAL_CITY_POPULATION = UB_DISTRICTS.reduce((s, d) => s + d.population, 0);
+
+export const SAMPLE_INCIDENT_COUNT = DEMO_HISTORICAL_INCIDENTS.length;
+
+/** Population-weighted city risk used by the dashboards and the landing page. */
+export const CITY_AVERAGE_RISK = Math.round(
+  UB_KHOROOS.reduce((s, k) => s + k.riskScore * k.population, 0) /
+    (UB_KHOROOS.reduce((s, k) => s + k.population, 0) || 1)
+);
+
+export const MONTH_RISK_CALENDAR: MonthRiskData[] = [  {
     month: 1,
     nameMn: '1-р сар',
     nameEn: 'January',

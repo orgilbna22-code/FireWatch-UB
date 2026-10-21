@@ -6,11 +6,15 @@ import {
   UB_DISTRICTS,
   UB_FIRE_STATIONS,
   DEMO_HISTORICAL_INCIDENTS,
+  TOTAL_HISTORICAL_INCIDENTS,
   UB_KHOROOS,
-  CURRENT_UB_WEATHER,
 } from '../../data/ubGeoData';
 import { AreaAnalysisPanel } from './AreaAnalysisPanel';
+import { HEAT_LEGEND_GRADIENT, ThermalHeatLayer, type HeatPoint } from './ThermalHeatLayer';
 import { getTranslation } from '../../i18n/translations';
+import { escapeHtml } from '../../utils/safeHtml';
+import { khorooLabel, riskLevelLabel, stationCodeLabel } from '../../i18n/labels';
+import { useLiveWeather } from '../../hooks/liveWeather';
 
 interface RiskMapProps {
   language: Language;
@@ -20,8 +24,22 @@ interface RiskMapProps {
   onNavigateToDetail?: (districtId: string) => void;
 }
 
-type MapTileStyle = 'satellite' | 'osm' | 'topo';
+type MapTileStyle = 'satellite' | 'osm';
 type DistrictSortMode = 'default' | 'risk_desc' | 'alpha';
+
+/**
+ * Leaflet's fly animation divides by the container size, so moving the camera
+ * before the map has been measured throws "Invalid LatLng object: (NaN, NaN)".
+ */
+const focusMap = (map: L.Map, center: [number, number], zoom: number, duration = 0.8) => {
+  if (!Number.isFinite(center[0]) || !Number.isFinite(center[1])) return;
+  const size = map.getSize();
+  if (size.x < 8 || size.y < 8) {
+    map.setView(center, zoom, { animate: false });
+    return;
+  }
+  map.flyTo(center, zoom, { duration });
+};
 
 // High-risk urban wildfire/residential hotspot centers for thermal GIS halo visualization
 const UB_HEATMAP_HOTSPOTS: [number, number, number, string, number][] = [
@@ -38,6 +56,21 @@ const UB_HEATMAP_HOTSPOTS: [number, number, number, string, number][] = [
   [47.9250, 107.0850, 1500, 'Шар хад, Улиастай', 76],
 ];
 
+const HOTSPOT_NAME_EN: Record<string, string> = {
+  'Баянхошуу гэр хороолол': 'Bayankhoroo ger belt',
+  'Толгойт уулын бэл': 'Tolgoyt hill base',
+  'Дарь-Эх, Ганц худаг': 'Darl-Ekh, Gants Khudag',
+  'Амгалан, Цайз зах': 'Amgalan, Tsaiz market',
+  'Дэнжийн 1000, Зурагт': 'Denj 1000, Zuragt',
+  '7 буудал, Чингэлтэй уул': '7 Buudal, Chingltei hill',
+  '32-ын тойрог, Бэлх': 'Ring 32, Belkh',
+  'Яармаг, Нисэх гэр хороолол': 'Yarmag, Nisekh ger belt',
+  'Гандан, 3-4 хороолол ар': 'Gandan, khoroo 3-4 rear',
+  'Шар хад, Улиастай': 'Shar Khad, Uliastai',
+};
+
+const hotspotNameEn = (mn: string): string => HOTSPOT_NAME_EN[mn] ?? mn;
+
 export const RiskMap: React.FC<RiskMapProps> = ({
   language,
   viewMode: _viewMode,
@@ -46,8 +79,10 @@ export const RiskMap: React.FC<RiskMapProps> = ({
   onNavigateToDetail,
 }) => {
   const t = getTranslation(language);
+  const live = useLiveWeather();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
   const baseTileLayerRef = useRef<L.TileLayer | null>(null);
   const labelsTileLayerRef = useRef<L.TileLayer | null>(null);
 
@@ -111,7 +146,6 @@ export const RiskMap: React.FC<RiskMapProps> = ({
   const stationsLayerGroup = useRef<L.LayerGroup | null>(null);
   const stationBuffersLayerGroup = useRef<L.LayerGroup | null>(null);
   const incidentsLayerGroup = useRef<L.LayerGroup | null>(null);
-  const heatmapLayerGroup = useRef<L.LayerGroup | null>(null);
   const userLocationLayerGroup = useRef<L.LayerGroup | null>(null);
 
   // 1. Initialize Leaflet Map (Runs once)
@@ -153,7 +187,6 @@ export const RiskMap: React.FC<RiskMapProps> = ({
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
     // Layer groups
-    heatmapLayerGroup.current = L.layerGroup().addTo(map);
     districtsLayerGroup.current = L.layerGroup().addTo(map);
     stationBuffersLayerGroup.current = L.layerGroup().addTo(map);
     khoroosLayerGroup.current = L.layerGroup().addTo(map);
@@ -162,6 +195,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
     userLocationLayerGroup.current = L.layerGroup().addTo(map);
 
     mapInstanceRef.current = map;
+    setMapInstance(map);
 
     // Automatic layout recalibration for zero grey tiles and perfect responsive fit
     setTimeout(() => {
@@ -185,6 +219,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
       }
       map.remove();
       mapInstanceRef.current = null;
+      setMapInstance(null);
     };
   }, []);
 
@@ -224,13 +259,6 @@ export const RiskMap: React.FC<RiskMapProps> = ({
         maxZoom: 19,
       }).addTo(map);
       baseTileLayerRef.current = base;
-    } else if (style === 'topo') {
-      const base = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap &copy; OpenTopoMap',
-        maxZoom: 17,
-        subdomains: 'abc',
-      }).addTo(map);
-      baseTileLayerRef.current = base;
     }
   };
 
@@ -243,7 +271,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
         setSelectedKhoroo(null);
         setIsPanelOpen(true);
         if (mapInstanceRef.current) {
-          mapInstanceRef.current.flyTo(match.center, 12, { duration: 0.8 });
+          focusMap(mapInstanceRef.current, match.center, 12);
         }
       }
     }
@@ -277,20 +305,22 @@ export const RiskMap: React.FC<RiskMapProps> = ({
         setIsPanelOpen(true);
         if (onSelectDistrict) onSelectDistrict(d.id);
         if (mapInstanceRef.current) {
-          mapInstanceRef.current.flyTo(d.center, 12, { duration: 0.8 });
+          focusMap(mapInstanceRef.current, d.center, 12);
         }
       });
 
       polygon.bindTooltip(
         `<div style="font-family: inherit; padding: 4px;">
-          <div style="font-weight: 700; color: #0B124D; font-size: 13px;">${
-            language === 'mn' ? d.nameMn : d.nameEn
-          } дүүрэг</div>
+          <div style="font-weight: 700; color: #0B124D; font-size: 13px;">${escapeHtml(
+            language === 'mn' ? `${d.nameMn} дүүрэг` : `${d.nameEn} District`
+          )}</div>
           <div style="font-size: 11px; color: #72778A;">
-            ${t.riskIndicatorTitle}: <b style="color:${fillColor}">${d.riskScore}/100</b>
+            ${escapeHtml(t.riskIndicatorTitle)}: <b style="color:${fillColor}">${d.riskScore}/100</b>
           </div>
           <div style="font-size: 10px; color: #0B124D; margin-top: 2px;">
-            ${d.khoroosCount} хороотой • Дарж нарийвчлах
+            ${language === 'mn'
+              ? `${d.khoroosCount} хороотой · Дарж нарийвчлах`
+              : `${d.khoroosCount} khoroos · Click to inspect`}
           </div>
         </div>`,
         { sticky: true }
@@ -300,55 +330,41 @@ export const RiskMap: React.FC<RiskMapProps> = ({
     });
   }, [activeDistrict, satelliteOpacity, language, onSelectDistrict, t.riskIndicatorTitle]);
 
-  // 5. Render Thermal Heatmap Layer
-  useEffect(() => {
-    const group = heatmapLayerGroup.current;
-    if (!group) return;
-    group.clearLayers();
+  // 5. Thermal risk surface (continuous interpolated canvas field)
+  const heatPoints = useMemo<HeatPoint[]>(() => {
+    const hotspots: HeatPoint[] = UB_HEATMAP_HOTSPOTS.map(([lat, lng, radius, name, dangerScore]) => ({
+      lat,
+      lng,
+      radiusMeters: radius,
+      score: dangerScore,
+      label: language === 'mn' ? name : hotspotNameEn(name),
+      labelValue: `${dangerScore}%`,
+    }));
 
-    if (!showHeatmap) return;
+    // Every khoroo contributes its own modelled risk, so the surface spreads
+    // across the whole capital instead of stopping at ten dots.
+    const fromKhoroos: HeatPoint[] = UB_KHOROOS.map((k) => ({
+      lat: k.center[0],
+      lng: k.center[1],
+      radiusMeters: 900 + k.gerHouseholdPercent * 18,
+      score: k.riskScore,
+    }));
 
-    UB_HEATMAP_HOTSPOTS.forEach(([lat, lng, radius, name, dangerScore]) => {
-      // Outer translucent gradient aura
-      const outerHalo = L.circle([lat, lng], {
-        radius: radius,
-        stroke: false,
-        fillColor: '#FF3B30',
-        fillOpacity: 0.16,
-        interactive: false,
-      });
+    return [...hotspots, ...fromKhoroos];
+  }, [language]);
 
-      // Mid thermal boundary
-      const midHalo = L.circle([lat, lng], {
-        radius: radius * 0.65,
-        stroke: false,
-        fillColor: '#FF633C',
-        fillOpacity: 0.22,
-        interactive: false,
-      });
-
-      // Core ignition density epicenter
-      const core = L.circle([lat, lng], {
-        radius: radius * 0.35,
-        color: '#FF2A00',
-        weight: 1.5,
-        fillColor: '#FF0033',
-        fillOpacity: 0.42,
-      });
-
-      core.bindTooltip(
-        `<div style="font-family: inherit; padding: 3px; font-size: 11px;">
-          <span style="color:#E93B2F; font-weight:800;">🔥 ${name}</span><br/>
-          <span style="font-size:10px; color:#555;">Орон зайн эрсдэлийн нягтрал: <b>${dangerScore}%</b></span>
-        </div>`,
-        { sticky: true }
-      );
-
-      group.addLayer(outerHalo);
-      group.addLayer(midHalo);
-      group.addLayer(core);
-    });
-  }, [showHeatmap]);
+  // Population-weighted city average — the honest number behind the ticker
+  const ubAverageRisk = useMemo(() => {
+    if (UB_KHOROOS.length === 0) {
+      return Math.round(UB_DISTRICTS.reduce((s, d) => s + d.riskScore, 0) / UB_DISTRICTS.length);
+    }
+    const totalPeople = UB_KHOROOS.reduce((s, k) => s + k.population, 0);
+    if (totalPeople <= 0) {
+      return Math.round(UB_KHOROOS.reduce((s, k) => s + k.riskScore, 0) / UB_KHOROOS.length);
+    }
+    const weighted = UB_KHOROOS.reduce((s, k) => s + k.riskScore * k.population, 0) / totalPeople;
+    return Math.round(weighted);
+  }, []);
 
   // 6. Render Khoroo Markers
   const visibleKhoroos = useMemo(() => {
@@ -401,7 +417,9 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                 transition: transform 0.15s ease;
               ">
                 <span style="width: 6px; height: 6px; border-radius: 50%; background: ${badgeBg};"></span>
-                <span>${kh.khorooNumber}-р хороо</span>
+                <span>${escapeHtml(
+                  language === 'mn' ? `${kh.khorooNumber}-р хороо` : `Khoroo ${kh.khorooNumber}`
+                )}</span>
                 <span style="font-family: monospace; font-size: 10px; padding: 0.5px 4px; border-radius: 4px; background: ${badgeBg}; color: white;">${kh.riskScore}%</span>
               </div>
             `,
@@ -427,7 +445,9 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                 font-weight: 800;
                 cursor: pointer;
                 transition: transform 0.15s ease;
-              " title="${kh.nameMn} (${kh.riskScore}%)">
+              " title="${escapeHtml(
+                language === 'mn' ? kh.nameMn : kh.nameEn
+              )} (${kh.riskScore}%)">
                 ${kh.khorooNumber}
               </div>
             `,
@@ -441,20 +461,31 @@ export const RiskMap: React.FC<RiskMapProps> = ({
         setSelectedKhoroo(kh);
         setIsPanelOpen(true);
         if (mapInstanceRef.current) {
-          mapInstanceRef.current.flyTo(kh.center, 14, { duration: 0.8 });
+          focusMap(mapInstanceRef.current, kh.center, 14);
         }
       });
 
+      const khLevelText = riskLevelLabel(kh.riskLevel, language === 'mn');
       marker.bindTooltip(
         `<div style="font-family: inherit; padding: 4px;">
-          <div style="font-weight: 700; color: #0B124D; font-size: 12px;">${
+          <div style="font-weight: 700; color: #0B124D; font-size: 12px;">${escapeHtml(
             language === 'mn' ? kh.nameMn : kh.nameEn
+          )}${
+            kh.isModelled
+              ? `<span style="font-size:9px;font-weight:600;color:#72778A;"> · ${
+                  language === 'mn' ? 'загварчилсан' : 'modelled'
+                }</span>`
+              : ''
           }</div>
           <div style="font-size: 11px; color: ${badgeBg}; font-weight: 700;">
-            Эрсдэл: ${kh.riskScore}% (${kh.riskLevel === 'very_high' ? 'Маш өндөр' : kh.riskLevel === 'high' ? 'Өндөр' : 'Дунд'})
+            ${language === 'mn' ? 'Эрсдэл' : 'Risk'}: ${kh.riskScore}% (
+            ${escapeHtml(khLevelText)})
           </div>
           <div style="font-size: 10px; color: #72778A; margin-top: 2px;">
-            Гэр хороолол: ${kh.gerHouseholdPercent}% • Гал сөнөөгч: ~${kh.avgResponseTimeMin} мин
+            ${language === 'mn' ? 'Гэр хороолол' : 'Ger households'}: ${kh.gerHouseholdPercent}% ·
+            ${language === 'mn' ? 'Ирэх хугацаа' : 'Response'}: ~${kh.avgResponseTimeMin} ${
+              language === 'mn' ? 'мин' : 'min'
+            }
           </div>
         </div>`,
         { sticky: true }
@@ -532,11 +563,13 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
       marker.bindTooltip(
         `<div style="font-family: inherit; padding: 4px;">
-          <div style="font-weight: 700; color: #0B124D; font-size: 12px;">🚒 ${
+          <div style="font-weight: 700; color: #0B124D; font-size: 12px;">🚒 ${escapeHtml(
             language === 'mn' ? sta.nameMn : sta.nameEn
-          } (${sta.code})</div>
+          )} (${escapeHtml(stationCodeLabel(sta.code, language === 'mn'))})</div>
           <div style="font-size: 10px; color: #72778A;">
-            ОБЕГ харьяа анги • Хүрэх дундаж тойрог: ~${sta.coverageRadiusKm} км
+            ${language === 'mn'
+              ? `ОБЕГ харьяа анги · Хүрэх тойрог: ~${sta.coverageRadiusKm} км`
+              : `NEMA company · Coverage radius: ~${sta.coverageRadiusKm} km`}
           </div>
         </div>`,
         { sticky: true }
@@ -566,13 +599,15 @@ export const RiskMap: React.FC<RiskMapProps> = ({
 
       circle.bindTooltip(
         `<div style="font-family: inherit; font-size: 10px; padding: 2px;">
-          <b>${inc.date}</b>: ${inc.causeGuessMn}
+          <b>${escapeHtml(inc.date)}</b>: ${escapeHtml(
+            language === 'mn' ? inc.causeGuessMn : inc.causeGuessEn
+          )}
         </div>`
       );
 
       group.addLayer(circle);
     });
-  }, [showIncidents]);
+  }, [showIncidents, language]);
 
   // Handle Search
   const handleSearchChange = (query: string) => {
@@ -616,7 +651,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
       setIsPanelOpen(true);
       if (onSelectDistrict) onSelectDistrict(d.id);
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.flyTo(d.center, 12, { duration: 0.8 });
+        focusMap(mapInstanceRef.current, d.center, 12);
       }
     } else {
       const kh = res.item as KhorooData;
@@ -627,7 +662,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
       setSelectedKhoroo(kh);
       setIsPanelOpen(true);
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.flyTo(kh.center, 14, { duration: 0.8 });
+        focusMap(mapInstanceRef.current, kh.center, 14);
       }
     }
   };
@@ -707,7 +742,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
           setActiveDistrict(closest);
           setSelectedKhoroo(null);
           setIsPanelOpen(true);
-          mapInstanceRef.current.flyTo([userLat, userLng], 13, { duration: 1.0 });
+          focusMap(mapInstanceRef.current, [userLat, userLng], 13, 1.0);
         }
       },
       () => setGeoLocating(false),
@@ -721,7 +756,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
     setSelectedKhoroo(null);
     setIsPanelOpen(false);
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo(UB_CENTER_COORDS, 11, { duration: 0.8 });
+      focusMap(mapInstanceRef.current, UB_CENTER_COORDS, 11);
     }
   };
 
@@ -772,14 +807,14 @@ export const RiskMap: React.FC<RiskMapProps> = ({
             {/* Autocomplete Dropdown */}
             {searchResults.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-2xl shadow-2xl border border-black/[0.08] overflow-hidden z-50 p-1 divide-y divide-black/[0.04] max-h-56 overflow-y-auto">
-                {searchResults.map((res, idx) => {
+                {searchResults.map((res) => {
                   const isDist = res.type === 'district';
                   const d = res.item as DistrictData;
                   const kh = res.item as KhorooData;
 
                   return (
                     <button
-                      key={idx}
+                      key={isDist ? d.id : kh.id}
                       onClick={() => selectSearchResult(res)}
                       className="w-full text-left p-2 hover:bg-[#F7F8FA] rounded-xl flex items-center justify-between text-xs transition-colors"
                     >
@@ -808,7 +843,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                   ? 'bg-[#FF633C] text-white shadow-xs'
                   : 'text-[#72778A] hover:text-[#0B124D]'
               }`}
-              title="Хиймэл дагуулын бодит зураг"
+              title={language === 'mn' ? 'Хиймэл дагуулын бодит зураг' : 'Real satellite imagery'}
             >
               <span>🛰️</span>
               <span className="text-[11px] sm:text-xs">{language === 'mn' ? 'Бодит' : 'Satellite'}</span>
@@ -820,7 +855,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                   ? 'bg-[#0B124D] text-white shadow-xs'
                   : 'text-[#72778A] hover:text-[#0B124D]'
               }`}
-              title="Энгийн зураг"
+              title={language === 'mn' ? 'Энгийн зураг' : 'Street map'}
             >
               <span className="text-[11px] sm:text-xs">{language === 'mn' ? 'Зураг' : 'Map'}</span>
             </button>
@@ -834,7 +869,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                 ? 'bg-[#E93B2F] text-white ring-2 ring-[#E93B2F]/40 shadow-red-500/20'
                 : 'bg-white/95 text-[#0B124D] hover:bg-white'
             }`}
-            title="Галын эрсдэлт голомтуудын дулааны бүс харуулах/нуух"
+            title={language === 'mn' ? 'Эрсдэлийн дулааны бүсийг харуулах/нуух' : 'Show or hide the thermal risk surface'}
           >
             <span>🔥</span>
             <span className="text-[11px] sm:text-xs hidden md:inline">
@@ -849,7 +884,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
               className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-full text-xs font-semibold shadow-md border border-black/[0.08] flex items-center gap-1 transition-all ${
                 showLayersDropdown ? 'bg-[#0B124D] text-white' : 'bg-white/95 text-[#0B124D]'
               }`}
-              title="Давхарга & Шүүлтүүр"
+              title={language === 'mn' ? 'Давхарга & шүүлтүүр' : 'Layers & filters'}
             >
               <span>⚙️</span>
               <span className="text-[11px] sm:text-xs hidden lg:inline">
@@ -862,7 +897,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
             {showLayersDropdown && (
               <div className="absolute top-full right-0 mt-2 bg-white/98 backdrop-blur-2xl rounded-2xl shadow-2xl border border-black/[0.1] p-2.5 w-60 z-[950] text-xs space-y-1.5">
                 <div className="text-[10px] font-mono uppercase text-[#72778A] font-bold px-2 py-0.5">
-                  Хороодын харагдац:
+                  {language === 'mn' ? 'Хороодын харагдац:' : 'Khoroo visibility:'}
                 </div>
                 <button
                   onClick={() => {
@@ -873,7 +908,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                     khorooMode === 'district_only' ? 'bg-[#0B124D] text-white font-bold' : 'hover:bg-slate-100 text-[#0B124D]'
                   }`}
                 >
-                  ✓ Сонгосон дүүргийн хороод
+                  {language === 'mn' ? 'Сонгосон дүүргийн хороод' : 'Selected district only'}
                 </button>
                 <button
                   onClick={() => {
@@ -884,7 +919,9 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                     khorooMode === 'all' ? 'bg-[#0B124D] text-white font-bold' : 'hover:bg-slate-100 text-[#0B124D]'
                   }`}
                 >
-                  Бүх 204 хороо (Нийслэл)
+                  {language === 'mn'
+                    ? `Бүх ${UB_KHOROOS.length} хороо (нийслэл)`
+                    : `All ${UB_KHOROOS.length} khoroos (capital)`}
                 </button>
                 <button
                   onClick={() => {
@@ -895,41 +932,65 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                     khorooMode === 'none' ? 'bg-[#0B124D] text-white font-bold' : 'hover:bg-slate-100 text-[#0B124D]'
                   }`}
                 >
-                  Хороодын тэмдэглэгээ нуух
+                  {language === 'mn' ? 'Хороодын тэмдэглэгээ нуух' : 'Hide khoroo markers'}
                 </button>
 
                 <div className="border-t border-slate-100 my-1"></div>
 
                 <div className="text-[10px] font-mono uppercase text-[#72778A] font-bold px-2 py-0.5">
-                  Онцгой байдлын давхарга:
+                  {language === 'mn' ? 'Онцгой байдлын давхарга:' : 'Emergency layers:'}
                 </div>
                 <button
                   onClick={() => setShowStations(!showStations)}
                   className="w-full text-left px-3 py-1.5 rounded-xl hover:bg-slate-100 text-[#0B124D] flex items-center justify-between"
                 >
-                  <span>🚒 Гал унтраах ангиуд</span>
-                  <span className="font-bold text-xs">{showStations ? 'Идэвхтэй' : 'Унтраасан'}</span>
+                  <span>🚒 {language === 'mn' ? 'Гал унтраах ангиуд' : 'Fire stations'}</span>
+                  <span className="font-bold text-xs">
+                    {showStations
+                      ? (language === 'mn' ? 'Идэвхтэй' : 'On')
+                      : language === 'mn'
+                        ? 'Унтраасан'
+                        : 'Off'}
+                  </span>
                 </button>
                 <button
                   onClick={() => setShowStationBuffers(!showStationBuffers)}
                   className="w-full text-left px-3 py-1.5 rounded-xl hover:bg-slate-100 text-[#0B124D] flex items-center justify-between"
                 >
-                  <span>⭕ Ангийн хүрэх тойрог (3км/5км)</span>
-                  <span className="font-bold text-xs">{showStationBuffers ? 'Тийм' : 'Үгүй'}</span>
+                  <span>
+                    ⭕{' '}
+                    {language === 'mn'
+                      ? 'Ангийн хүрэх тойрог (3 км / 5 км)'
+                      : 'Station coverage (3 km / 5 km)'}
+                  </span>
+                  <span className="font-bold text-xs">
+                    {showStationBuffers
+                      ? (language === 'mn' ? 'Тийм' : 'Yes')
+                      : language === 'mn'
+                        ? 'Үгүй'
+                        : 'No'}
+                  </span>
                 </button>
                 <button
                   onClick={() => setShowIncidents(!showIncidents)}
                   className="w-full text-left px-3 py-1.5 rounded-xl hover:bg-slate-100 text-[#0B124D] flex items-center justify-between"
                 >
-                  <span>📍 Түүхэн 1,937 дуудлага</span>
-                  <span className="font-bold text-xs">{showIncidents ? 'Тийм' : 'Үгүй'}</span>
+                  <span>
+                    📍 {language === 'mn' ? 'Дуудлагын дүрслэл' : 'Sample call log'} ·{' '}
+                    {DEMO_HISTORICAL_INCIDENTS.length} / {TOTAL_HISTORICAL_INCIDENTS.toLocaleString()}
+                  </span>
+                  <span className="font-bold text-xs">
+                    {showIncidents ? (language === 'mn' ? 'Тийм' : 'Yes') : language === 'mn' ? 'Үгүй' : 'No'}
+                  </span>
                 </button>
                 <button
                   onClick={() => setShowHeatmap(!showHeatmap)}
                   className="w-full text-left px-3 py-1.5 rounded-xl hover:bg-slate-100 text-[#0B124D] flex items-center justify-between"
                 >
-                  <span>🔥 Дулааны эрсдэлт бүс</span>
-                  <span className="font-bold text-xs">{showHeatmap ? 'Тийм' : 'Үгүй'}</span>
+                  <span>🔥 {language === 'mn' ? 'Дулааны эрсдэлт бүс' : 'Thermal risk surface'}</span>
+                  <span className="font-bold text-xs">
+                    {showHeatmap ? (language === 'mn' ? 'Тийм' : 'Yes') : language === 'mn' ? 'Үгүй' : 'No'}
+                  </span>
                 </button>
               </div>
             )}
@@ -986,7 +1047,15 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                   ? 'bg-amber-500 text-white shadow-xs'
                   : 'bg-white/80 text-[#0B124D] hover:bg-white'
               }`}
-              title={sortBy === 'risk_desc' ? 'Эрсдэлийн эрэмбээр жагсаасан' : 'Дүүргийн дарааллаар жагсаах'}
+              title={
+                language === 'mn'
+                  ? sortBy === 'risk_desc'
+                    ? 'Эрсдэлийн эрэмбээр жагсаасан'
+                    : 'Дүүргийн дарааллаар жагсаах'
+                  : sortBy === 'risk_desc'
+                    ? 'Sorted by risk score'
+                    : 'Sorted by district order'
+              }
             >
               <span>⚡</span>
               <span>{sortBy === 'risk_desc' ? (language === 'mn' ? 'Эрсдэлээр' : 'Top Risk') : (language === 'mn' ? 'Бүсээр' : 'Default')}</span>
@@ -1007,7 +1076,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                     setIsPanelOpen(true);
                     if (onSelectDistrict) onSelectDistrict(d.id);
                     if (mapInstanceRef.current) {
-                      mapInstanceRef.current.flyTo(d.center, 12, { duration: 0.8 });
+                      focusMap(mapInstanceRef.current, d.center, 12);
                     }
                   }}
                   className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm backdrop-blur-md transition-all shrink-0 flex items-center gap-1.5 group ${
@@ -1066,7 +1135,9 @@ export const RiskMap: React.FC<RiskMapProps> = ({
         {activeDistrict && activeDistrictKhoroos.length > 0 && (
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 px-1 scrollbar-none pointer-events-auto w-full select-none text-[11px]">
             <span className="text-[10px] font-mono text-white/80 bg-[#0B124D]/80 backdrop-blur-md px-2 py-0.5 rounded-md shrink-0">
-              {activeDistrict.nameMn} ({activeDistrict.khoroosCount} хороо):
+              {language === 'mn'
+                ? `${activeDistrict.nameMn} (${activeDistrict.khoroosCount} хороо):`
+                : `${activeDistrict.nameEn} (${activeDistrict.khoroosCount} khoroos):`}
             </span>
             {activeDistrictKhoroos.slice(0, 8).map((kh) => {
               const isSelKh = selectedKhoroo?.id === kh.id;
@@ -1077,7 +1148,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                     setSelectedKhoroo(kh);
                     setIsPanelOpen(true);
                     if (mapInstanceRef.current) {
-                      mapInstanceRef.current.flyTo(kh.center, 14, { duration: 0.8 });
+                      focusMap(mapInstanceRef.current, kh.center, 14);
                     }
                   }}
                   className={`px-2 py-0.5 rounded-full whitespace-nowrap transition-all shrink-0 font-medium ${
@@ -1086,7 +1157,7 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                       : 'bg-white/80 hover:bg-white text-[#0B124D]'
                   }`}
                 >
-                  <span>{kh.khorooNumber}-р хороо</span>
+                  <span>{khorooLabel(kh.khorooNumber, language === 'mn')}</span>
                   <span className="ml-1 font-mono font-bold text-[10px] opacity-80">{kh.riskScore}%</span>
                 </button>
               );
@@ -1096,7 +1167,9 @@ export const RiskMap: React.FC<RiskMapProps> = ({
                 onClick={() => setIsPanelOpen(true)}
                 className="px-2 py-0.5 rounded-full bg-white/60 hover:bg-white text-[#0B124D] text-[10px] font-mono shrink-0"
               >
-                +{activeDistrictKhoroos.length - 8} бусад хороод →
+                {language === 'mn'
+                  ? `+${activeDistrictKhoroos.length - 8} бусад хороод →`
+                  : `+${activeDistrictKhoroos.length - 8} more khoroos →`}
               </button>
             )}
           </div>
@@ -1109,8 +1182,8 @@ export const RiskMap: React.FC<RiskMapProps> = ({
         onClick={handleAnalyzeCurrentArea}
         disabled={geoLocating}
         className="absolute right-3 top-28 sm:top-32 z-[850] w-10 h-10 bg-white/95 hover:bg-white text-[#0B124D] rounded-full shadow-lg border border-black/[0.08] transition-all active:scale-95 flex items-center justify-center pointer-events-auto"
-        title="Миний байршил олох"
-        aria-label="Миний байршил олох"
+        title={language === 'mn' ? 'Миний байршил олох' : 'Find my location'}
+        aria-label={language === 'mn' ? 'Миний байршил олох' : 'Find my location'}
       >
         <svg className={`w-4 h-4 text-[#FF633C] ${geoLocating ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <circle cx="12" cy="12" r="3" />
@@ -1119,36 +1192,71 @@ export const RiskMap: React.FC<RiskMapProps> = ({
       </button>
 
       {/* Mini Bottom-Left Map Legend HUD */}
-      <div className="absolute bottom-6 left-3 z-[850] hidden sm:flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-black/[0.08] shadow-lg text-[10px] font-mono pointer-events-none">
-        <span className="flex items-center gap-1 font-bold text-[#E93B2F]">
-          <span className="w-2 h-2 rounded-full bg-[#E93B2F] animate-pulse" /> &gt;75% Маш өндөр
-        </span>
-        <span className="text-slate-300">|</span>
-        <span className="flex items-center gap-1 font-bold text-[#FF633C]">
-          <span className="w-2 h-2 rounded-full bg-[#FF633C]" /> 55-74% Өндөр
-        </span>
-        <span className="text-slate-300">|</span>
-        <span className="flex items-center gap-1 font-bold text-[#12B89A]">
-          <span className="w-2 h-2 rounded-full bg-[#12B89A]" /> &lt;55% Хэвийн
-        </span>
-        <span className="text-slate-300">|</span>
-        <span className="flex items-center gap-1 text-[#0B124D]">
-          🚒 Ангиуд ({UB_FIRE_STATIONS.length})
-        </span>
+      <div className="absolute bottom-6 left-3 z-[850] hidden sm:flex flex-col gap-1.5 bg-white/95 backdrop-blur-xl px-3.5 py-2.5 rounded-2xl border border-black/[0.08] shadow-lg text-[10px] font-mono pointer-events-none max-w-[calc(100vw-32px)]">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-[#0B124D] uppercase tracking-wide">
+            {language === 'mn' ? 'Эрсдэлийн дулааны бүс' : 'Thermal risk surface'}
+          </span>
+          <span
+            className="w-24 h-2 rounded-full border border-black/10"
+            style={{ background: HEAT_LEGEND_GRADIENT }}
+            aria-hidden="true"
+          />
+          <span className="text-[#72778A]">0 → 100%</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="flex items-center gap-1 font-bold text-[#E93B2F]">
+            <span className="w-2 h-2 rounded-full bg-[#E93B2F] animate-pulse" /> &gt;75%{' '}
+            {language === 'mn' ? 'Маш өндөр' : 'Very high'}
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="flex items-center gap-1 font-bold text-[#FF633C]">
+            <span className="w-2 h-2 rounded-full bg-[#FF633C]" /> 55-74%{' '}
+            {language === 'mn' ? 'Өндөр' : 'High'}
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="flex items-center gap-1 font-bold text-[#12B89A]">
+            <span className="w-2 h-2 rounded-full bg-[#12B89A]" /> &lt;55%{' '}
+            {language === 'mn' ? 'Хэвийн' : 'Moderate'}
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="flex items-center gap-1 text-[#0B124D]">
+            🚒 {language === 'mn' ? 'Ангиуд' : 'Stations'} ({UB_FIRE_STATIONS.length})
+          </span>
+        </div>
       </div>
 
-      {/* Live Metro Risk & Wind Alert Ticker (Top Right on Large Screens) */}
-      <div className="absolute top-3 right-3 z-[850] hidden xl:flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-full border border-black/[0.08] shadow-lg text-[11px] font-mono pointer-events-auto">
-        <span className="w-2 h-2 rounded-full bg-[#FF633C] animate-pulse" />
-        <span className="text-[#0B124D] font-bold">УБ Дундаж: 58%</span>
+      {/* LIVE Metro Risk & Weather Ticker (Top Right on Large Screens) */}
+      <div className="absolute top-3 right-3 z-[850] hidden xl:flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-full border border-black/[0.08] shadow-lg text-[11px] font-mono pointer-events-auto max-w-[calc(100vw-24px)]">
+        <span className={`w-2 h-2 rounded-full animate-pulse ${live.isLive ? 'bg-[#12B89A]' : 'bg-amber-500'}`} />
+        <span className="text-[#0B124D] font-bold whitespace-nowrap">
+          {language === 'mn' ? 'УБ дундаж' : 'UB average'}: {ubAverageRisk}%
+        </span>
         <span className="text-slate-300">•</span>
-        <span className="text-[#72778A]">Салхи: {CURRENT_UB_WEATHER.windSpeedKmh} км/ц</span>
+        <span className="text-[#72778A] whitespace-nowrap">
+          {language === 'mn' ? 'Салхи' : 'Wind'}: {live.windSpeedKmh}{' '}
+          {language === 'mn' ? 'км/ц' : 'km/h'}
+        </span>
         <span className="text-slate-300">•</span>
-        <span className="text-[#E93B2F] font-bold">Хуурайшилт: Идэвхтэй</span>
+        <span className="text-[#72778A] whitespace-nowrap">
+          {language === 'mn' ? 'Чийгшил' : 'RH'}: {live.humidityPercent}%
+        </span>
+        <span className="text-slate-300">•</span>
+        <span
+          className={`font-bold whitespace-nowrap ${
+            live.fireWeatherIndex >= 55 ? 'text-[#E93B2F]' : 'text-[#12B89A]'
+          }`}
+          title={live.isLive ? live.lastUpdated : language === 'mn' ? 'Загварчлалын суурь үзүүлэлт' : 'Modelled baseline'}
+        >
+          {language === 'mn' ? 'FWI' : 'FWI'}: {live.fireWeatherIndex}/100 ·{' '}
+          {live.isLive ? (language === 'mn' ? 'LIVE' : 'LIVE') : (language === 'mn' ? 'СУРТАЛЦ' : 'BASELINE')}
+        </span>
       </div>
 
       {/* Leaflet Map Canvas */}
       <div ref={mapContainerRef} className="w-full h-full" />
+
+      <ThermalHeatLayer map={mapInstance} points={heatPoints} visible={showHeatmap} />
 
       {/* Floating Panel Re-Open Button when panel is closed */}
       {!isPanelOpen && activeDistrict && (
@@ -1157,7 +1265,11 @@ export const RiskMap: React.FC<RiskMapProps> = ({
           className="absolute bottom-20 sm:bottom-4 right-3 sm:right-4 z-[990] bg-[#0B124D] text-white px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full shadow-2xl flex items-center gap-1.5 sm:gap-2 text-xs font-bold hover:bg-[#11166B] transition-all active:scale-95 border border-white/20 max-w-[calc(100vw-24px)] truncate"
         >
           <span>📋</span>
-          <span className="truncate">{activeDistrict.nameMn}: Эрсдэлийн задргаа нээх ({activeDistrict.riskScore}%)</span>
+          <span className="truncate">
+            {language === 'mn'
+              ? `${activeDistrict.nameMn}: Эрсдэлийн задргаа нээх (${activeDistrict.riskScore}%)`
+              : `${activeDistrict.nameEn}: Open risk breakdown (${activeDistrict.riskScore}%)`}
+          </span>
         </button>
       )}
 

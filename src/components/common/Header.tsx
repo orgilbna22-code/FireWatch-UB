@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActiveTab, Language, Theme, ViewMode } from '../../types';
 import { getTranslation } from '../../i18n/translations';
 import { soundEngine, useSoundStatus } from './AudioAmbiance';
@@ -36,24 +36,55 @@ export const Header: React.FC<HeaderProps> = ({
   // Shared engine state: stays in sync with FireSimulationLab & mobile drawer
   const soundOn = useSoundStatus();
 
-  const mainNavItems: { id: ActiveTab; label: string }[] = [
-    { id: 'landing', label: language === 'mn' ? 'Эхлэл' : 'Overview' },
-    { id: 'map', label: t.navMap },
-    { id: 'explorer', label: t.navExplorer },
-    { id: 'districts', label: t.navDistricts },
-    { id: 'personal', label: language === 'mn' ? '👤 Хувийн танхим' : '👤 Personal Hub' },
-    { id: 'safety', label: t.navSafety },
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isMoreOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setIsMoreOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMoreOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isMoreOpen]);
+
+  // Compact labels keep the desktop pill from wrapping; full names live in the tooltip.
+  const mainNavItems: { id: ActiveTab; label: string; title: string }[] = [
+    { id: 'landing', label: language === 'mn' ? 'Эхлэл' : 'Home', title: language === 'mn' ? 'Нүүр хуудас' : 'Landing page' },
+    { id: 'overview', label: language === 'mn' ? 'Тойм' : 'Overview', title: t.navOverview },
+    { id: 'map', label: language === 'mn' ? 'Зураг' : 'Map', title: t.navMap },
+    { id: 'explorer', label: language === 'mn' ? 'Шинжилгээ' : 'Simulator', title: t.navExplorer },
+    { id: 'districts', label: language === 'mn' ? 'Дүүрэг' : 'Districts', title: t.navDistricts },
+    { id: 'safety', label: language === 'mn' ? 'Аюулгүй байдал' : 'Safety', title: t.navSafety },
   ];
 
   const secondaryNavItems: { id: ActiveTab; label: string }[] = [
-    { id: 'calendar', label: t.navCalendar },
-    { id: 'overview', label: t.navOverview },
-    { id: 'incidents', label: t.navIncidents },
-    { id: 'emergency', label: t.navEmergency },
-    { id: 'weather', label: t.navWeather },
-    { id: 'reports', label: t.navReports },
-    { id: 'sources', label: t.navSources },
+    { id: 'calendar', label: language === 'mn' ? '📅 12 сарын хуанли' : '📅 Risk Calendar' },
+    { id: 'incidents', label: language === 'mn' ? '📍 Түүхэн дуудлага' : '📍 Historical Incidents' },
+    { id: 'emergency', label: language === 'mn' ? '🚒 Гал унтраах ангиуд' : '🚒 Fire Stations' },
+    { id: 'weather', label: language === 'mn' ? '🌤️ Цаг агаар' : '🌤️ Weather & Climate' },
+    { id: 'reports', label: language === 'mn' ? '📄 Тайлан' : '📄 Report Center' },
+    { id: 'sources', label: language === 'mn' ? 'ℹ️ Өгөгдлийн эх сурвалж' : 'ℹ️ Data Sources' },
   ];
+
+  // Compact text used inside the collapsed "More" trigger chip
+  const secondaryTriggerLabels: Partial<Record<ActiveTab, string>> = {
+    calendar: language === 'mn' ? 'Хуанли' : 'Calendar',
+    incidents: language === 'mn' ? 'Дуудлага' : 'Incidents',
+    emergency: language === 'mn' ? 'Ангиуд' : 'Stations',
+    weather: language === 'mn' ? 'Цаг агаар' : 'Weather',
+    reports: language === 'mn' ? 'Тайлан' : 'Reports',
+    sources: language === 'mn' ? 'Эх сурвалж' : 'Sources',
+  };
+
+  const activeSecondary = secondaryNavItems.find((item) => item.id === activeTab);
 
   const toggleSound = () => {
     soundEngine.toggle();
@@ -85,15 +116,17 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         </button>
 
-        {/* Zone 2: 4-6 clean text navigation links with smooth hover and active state (Desktop Only) */}
-        <nav className="hidden lg:flex items-center gap-1 bg-[#F7F8FA]/90 p-1 rounded-full border border-black/[0.04]">
+        {/* Zone 2: Clean text navigation links with smooth hover and active state (Desktop Only) */}
+        <nav className="hidden lg:flex items-center gap-0.5 bg-[#F7F8FA]/90 p-1 rounded-full border border-black/[0.04]">
           {mainNavItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-200 relative ${
+                aria-current={isActive ? 'page' : undefined}
+                title={item.title}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-200 relative ${
                   isActive
                     ? 'bg-white text-[#0B124D] shadow-[0_2px_8px_rgba(0,0,0,0.06)]'
                     : 'text-[#72778A] hover:text-[#0B124D]'
@@ -104,19 +137,54 @@ export const Header: React.FC<HeaderProps> = ({
             );
           })}
 
-          {/* More Dropdown */}
-          <div className="relative group">
-            <button className="px-3 py-1.5 text-xs font-semibold rounded-full text-[#72778A] hover:text-[#0B124D] transition-colors flex items-center gap-1">
-              <span>{language === 'mn' ? 'Бусад' : 'More'}</span>
-              <svg className="w-3 h-3 transition-transform group-hover:rotate-180" viewBox="0 0 20 20" fill="currentColor">
+          {/* More Dropdown: click/tap + keyboard accessible (hover still works on desktop) */}
+          <div className="relative group" ref={moreRef}>
+            <button
+              onClick={() => setIsMoreOpen((v) => !v)}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setIsMoreOpen(true);
+                }
+              }}
+              aria-haspopup="true"
+              aria-expanded={isMoreOpen}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors flex items-center gap-1 ${
+                activeSecondary
+                  ? 'bg-white text-[#0B124D] shadow-[0_2px_8px_rgba(0,0,0,0.06)]'
+                  : 'text-[#72778A] hover:text-[#0B124D]'
+              }`}
+            >
+              <span>
+                {activeSecondary
+                  ? secondaryTriggerLabels[activeSecondary.id] ?? activeSecondary.label
+                  : language === 'mn'
+                  ? 'Бусад'
+                  : 'More'}
+              </span>
+              <svg
+                className={`w-3 h-3 transition-transform ${isMoreOpen ? 'rotate-180' : 'group-hover:rotate-180'}`}
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
-            <div className="absolute top-full right-0 mt-1.5 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-black/[0.06] p-1.5 hidden group-hover:block group-focus-within:block z-50 animate-pop-in">
+            <div
+              className={`absolute top-full right-0 mt-1.5 w-56 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-black/[0.06] p-1.5 z-50 origin-top-right transition-all duration-150 ${
+                isMoreOpen
+                  ? 'opacity-100 scale-100 pointer-events-auto'
+                  : 'opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:pointer-events-auto'
+              }`}
+            >
               {secondaryNavItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setIsMoreOpen(false);
+                  }}
                   className={`w-full text-left px-3.5 py-2 text-xs font-medium rounded-xl transition-colors ${
                     activeTab === item.id
                       ? 'bg-[#0B124D]/5 text-[#0B124D] font-semibold'
@@ -141,7 +209,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-[#0B124D] text-white shadow-sm ring-2 ring-[#FF633C]/40'
                 : 'bg-[#0B124D]/5 text-[#0B124D] hover:bg-[#0B124D]/10'
             }`}
-            title="Хувийн портал ба Зохиогчийн хуудас"
+            title={language === 'mn' ? 'Хувийн портал ба Зохиогчийн хуудас' : 'Personal portal & creator page'}
           >
             <span className="w-4 h-4 rounded-full bg-[#FF633C] text-white flex items-center justify-center font-bold text-[9px]">
               O
@@ -160,7 +228,7 @@ export const Header: React.FC<HeaderProps> = ({
                   ? 'bg-amber-500 text-white shadow-sm'
                   : 'bg-amber-500/10 text-amber-900 hover:bg-amber-500/20'
               }`}
-              title="Хүүхэд, ахмадуудад зориулсан хялбаршуулсан төлөв"
+              title={language === 'mn' ? 'Хүүхэд, ахмадуудад зориулсан хялбаршуулсан төлөв' : 'Simplified mode for children & elders'}
             >
               <span>🏡</span>
               <span>
@@ -177,8 +245,12 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-[#FF633C]/10 text-[#FF633C]'
                 : 'text-[#72778A] hover:text-[#0B124D] hover:bg-black/5'
             }`}
-            title={soundOn ? 'Галын намуун чимээг хаах' : 'Галын намуун чимээ асаах'}
-            aria-label="Галын чимээ асаах/унтраах"
+            title={
+              soundOn
+                ? language === 'mn' ? 'Галын намуун чимээг хаах' : 'Mute fireplace ambience'
+                : language === 'mn' ? 'Галын намуун чимээ асаах' : 'Play fireplace ambience'
+            }
+            aria-label={language === 'mn' ? 'Галын чимээ асаах/унтраах' : 'Toggle fireplace sound'}
           >
             {soundOn ? '🔥' : '🔇'}
           </button>
@@ -188,8 +260,12 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onToggleTheme}
               className="w-9 h-9 rounded-full text-sm flex items-center justify-center transition-all text-[#72778A] hover:text-[#0B124D] hover:bg-black/5 border border-black/[0.08]"
-              title={theme === 'dark' ? 'Өдрийн горимд шилжих' : 'Шөнийн горимд шилжих'}
-              aria-label="Шөнийн горим асаах/унтраах"
+              title={
+                theme === 'dark'
+                  ? language === 'mn' ? 'Өдрийн горимд шилжих' : 'Switch to day mode'
+                  : language === 'mn' ? 'Шөнийн горимд шилжих' : 'Switch to night mode'
+              }
+              aria-label={language === 'mn' ? 'Шөнийн горим асаах/унтраах' : 'Toggle night mode'}
             >
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
@@ -221,8 +297,8 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenMobileMenu}
               className="lg:hidden w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0B124D] flex items-center justify-center transition-colors text-base font-bold shrink-0 shadow-2xs"
-              aria-label="Цэс нээх"
-              title="Бүх цэс нээх"
+              aria-label={language === 'mn' ? 'Цэс нээх' : 'Open menu'}
+              title={language === 'mn' ? 'Бүх цэс нээх' : 'Open full menu'}
             >
               ☰
             </button>

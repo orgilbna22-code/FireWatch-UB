@@ -1,7 +1,16 @@
 import React from 'react';
 import { ActiveTab, Language, ViewMode } from '../../types';
 import { getTranslation } from '../../i18n/translations';
-import { UB_DISTRICTS, UB_FIRE_STATIONS, DEMO_HISTORICAL_INCIDENTS, CURRENT_UB_WEATHER } from '../../data/ubGeoData';
+import { unitKm } from '../../i18n/labels';
+import {
+  CITY_AVERAGE_RISK,
+  TOTAL_CITY_POPULATION,
+  TOTAL_HISTORICAL_INCIDENTS,
+  TOTAL_KHOROO_COUNT,
+  UB_DISTRICTS,
+  UB_FIRE_STATIONS,
+} from '../../data/ubGeoData';
+import { minutesSince, riskLevelFromScore, useLiveWeather } from '../../hooks/liveWeather';
 
 interface OverviewDashboardProps {
   language: Language;
@@ -11,6 +20,13 @@ interface OverviewDashboardProps {
   onOpenDemoInfo: () => void;
 }
 
+const LEVEL_LABEL: Record<string, { mn: string; en: string }> = {
+  low: { mn: 'БАГА', en: 'LOW' },
+  moderate: { mn: 'ДУНД', en: 'MODERATE' },
+  high: { mn: 'ӨНДӨР', en: 'HIGH' },
+  very_high: { mn: 'МАШ ӨНДӨР', en: 'VERY HIGH' },
+};
+
 export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   language,
   viewMode,
@@ -19,14 +35,15 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   onOpenDemoInfo,
 }) => {
   const t = getTranslation(language);
+  const live = useLiveWeather();
+  const isMn = language === 'mn';
 
-  // Compute aggregate indicators
-  const totalIncidents = DEMO_HISTORICAL_INCIDENTS.length;
-  const avgRiskScore = Math.round(
-    UB_DISTRICTS.reduce((acc, d) => acc + d.riskScore, 0) / UB_DISTRICTS.length
-  );
-  const totalMonitoredPop = UB_DISTRICTS.reduce((acc, d) => acc + d.population, 0);
+  // Every headline number is computed from the shipped datasets
+  const avgRiskScore = CITY_AVERAGE_RISK;
   const highestRiskDistrict = [...UB_DISTRICTS].sort((a, b) => b.riskScore - a.riskScore)[0];
+  const highestLevel = LEVEL_LABEL[riskLevelFromScore(highestRiskDistrict.riskScore)];
+  const avgLevel = LEVEL_LABEL[riskLevelFromScore(avgRiskScore)];
+  const minsAgo = minutesSince(live.fetchedAtMs);
 
   return (
     <div className="w-full min-h-[calc(100vh-65px)] bg-[#F7F8FA] p-4 sm:p-6 lg:p-8">
@@ -55,21 +72,35 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
           {/* Understated Data-Status Indicator */}
           <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-[#0B124D]/8 shadow-xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#12B89A] animate-pulse" />
+            <span
+              className={`w-2.5 h-2.5 rounded-full animate-pulse ${
+                live.isLive ? 'bg-[#12B89A]' : 'bg-amber-400'
+              }`}
+            />
             <div className="text-left">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-bold text-[#0B124D]">
-                  {language === 'mn' ? 'Өгөгдлийн статус' : 'Data Integrity'}
+                  {isMn ? 'Өгөгдлийн статус' : 'Data Integrity'}
+                </span>
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                    live.isLive
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}
+                >
+                  {live.isLive ? 'LIVE' : isMn ? 'СҮРТЕЛЦ' : 'SAMPLE'}
                 </span>
                 <button
                   onClick={onOpenDemoInfo}
-                  className="text-[10px] font-mono bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded"
+                  className="text-[10px] font-mono bg-[#F7F8FA] text-[#72778A] border border-[#0B124D]/10 px-1.5 py-0.5 rounded hover:text-[#0B124D] transition-colors"
                 >
                   DEMO MODE
                 </button>
               </div>
-              <span className="text-[11px] text-[#72778A]">
-                {language === 'mn' ? 'Сүүлийн шинэчлэл' : 'Last sync'}: 2026-09-30
+              <span className="text-[11px] text-[#72778A] block">
+                {isMn ? 'Цаг агаар' : 'Weather'}: {live.lastUpdated}
+                {minsAgo !== null && (isMn ? ` · ${minsAgo} мин өмнө` : ` · ${minsAgo} min ago`)}
               </span>
             </div>
           </div>
@@ -89,7 +120,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               <span className="text-xs text-[#72778A]">/100</span>
             </div>
             <span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded inline-block mt-2">
-              {language === 'mn' ? 'Дундаж түвшин' : 'Moderate Threshold'}
+              {isMn ? avgLevel.mn : avgLevel.en}
             </span>
           </div>
 
@@ -97,11 +128,17 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             <span className="text-[11px] font-mono text-[#72778A] block mb-1">
               {t.stats.districtsCovered}
             </span>
-            <div className="font-mono text-3xl sm:text-4xl font-bold text-[#0B124D] tabular-nums">
-              {UB_DISTRICTS.length}
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-mono text-3xl sm:text-4xl font-bold text-[#0B124D] tabular-nums">
+                {UB_DISTRICTS.length}
+              </span>
+              <span className="text-xs text-[#72778A]">
+                · {TOTAL_KHOROO_COUNT} {isMn ? 'хороо' : 'khoroos'}
+              </span>
             </div>
             <span className="text-[11px] text-[#72778A] mt-2 block">
-              {language === 'mn' ? 'Бүх 9 дүүрэг бүрэн' : '100% Capital coverage'}
+              {(TOTAL_CITY_POPULATION / 1000).toFixed(0)}{' '}
+              {isMn ? 'мянган оршин суугч' : 'thousand residents'}
             </span>
           </div>
 
@@ -110,10 +147,10 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               {t.stats.totalIncidentsAnalyzed}
             </span>
             <div className="font-mono text-3xl sm:text-4xl font-bold text-[#0B124D] tabular-nums">
-              1,937
+              {TOTAL_HISTORICAL_INCIDENTS.toLocaleString()}
             </div>
             <span className="text-[11px] text-[#72778A] mt-2 block">
-              {language === 'mn' ? '2022–2026 түүхэн өгөгдөл' : '2022–2026 multi-year log'}
+              {isMn ? 'Дүүргүүдийн дуудлагын нэгтгэл' : 'Aggregated district call log'}
             </span>
           </div>
 
@@ -125,19 +162,28 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               {UB_FIRE_STATIONS.length}
             </div>
             <span className="text-[11px] text-[#12B89A] font-medium mt-2 block">
-              {language === 'mn' ? 'ОБЕГ байнгын бэлэн' : 'NEMA Active Stations'}
+              {isMn ? 'Бүх дүүрэгт байнгын бэлэн' : 'NEMA Active Stations'}
             </span>
           </div>
 
           <div className="p-5 rounded-2xl bg-white border border-[#0B124D]/8 shadow-xs col-span-2 sm:col-span-1">
             <span className="text-[11px] font-mono text-[#72778A] block mb-1">
-              {language === 'mn' ? 'Цаг агаарын хуурайшилт' : 'Fire Weather Index'}
+              {isMn ? 'Цаг агаарын хуурайшилт' : 'Fire Weather Index'}
             </span>
-            <div className="font-mono text-3xl sm:text-4xl font-bold text-[#FF633C] tabular-nums">
-              {CURRENT_UB_WEATHER.fireWeatherIndex}
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-mono text-3xl sm:text-4xl font-bold text-[#FF633C] tabular-nums">
+                {live.fireWeatherIndex}
+              </span>
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                  live.isLive ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                }`}
+              >
+                {live.isLive ? 'LIVE' : isMn ? 'СҮРТЕЛЦ' : 'DEMO'}
+              </span>
             </div>
             <span className="text-[11px] text-[#72778A] mt-2 block">
-              {CURRENT_UB_WEATHER.windSpeedKmh} км/ц · {CURRENT_UB_WEATHER.conditionMn}
+              {live.windSpeedKmh} {isMn ? 'км/ц' : 'km/h'} · {isMn ? live.conditionMn : live.conditionEn}
             </span>
           </div>
 
@@ -184,7 +230,15 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                     .map((d) => (
                       <tr
                         key={d.id}
+                        tabIndex={0}
                         className="hover:bg-[#F7F8FA] transition-colors group cursor-pointer"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onSelectDistrict(d.id);
+                            onSelectTab('map');
+                          }
+                        }}
                         onClick={() => {
                           onSelectDistrict(d.id);
                           onSelectTab('map');
@@ -200,7 +254,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                           {d.gerHouseholdPercent}%
                         </td>
                         <td className="py-3 px-3 font-mono text-[#72778A]">
-                          ~{d.nearestStationDistKm} км
+                          ~{d.nearestStationDistKm} {unitKm(isMn)}
                         </td>
                         <td className="py-3 px-3 font-mono">
                           <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[#0B124D] font-bold">
@@ -261,7 +315,9 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                 <span className="font-mono text-4xl font-bold text-[#FF633C]">
                   {highestRiskDistrict.riskScore}
                 </span>
-                <span className="font-mono text-xs text-white/60">/ 100 МАШ ӨНДӨР</span>
+                <span className="font-mono text-xs text-white/60">
+                  / 100 {isMn ? highestLevel.mn : highestLevel.en}
+                </span>
               </div>
               <p className="text-xs text-white/80 leading-relaxed mb-4">
                 {language === 'mn'

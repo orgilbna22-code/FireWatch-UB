@@ -3,18 +3,30 @@ import { Language } from '../../types';
 import { FireAnimation } from '../common/FireAnimation';
 import { AmbientFireBackground } from '../common/AmbientFireBackground';
 import { soundEngine, useSoundStatus } from '../common/AudioAmbiance';
+import { useLiveWeather } from '../../hooks/liveWeather';
 
 interface FireSimulationLabProps {
   language: Language;
   onExploreMap?: () => void;
 }
 
+// Slider bounds must cover real UB extremes (storm winds, saturated winter air)
+// or a live value pins the thumb while the read-out shows the true number.
+const WIND_MIN = 0;
+const WIND_MAX = 90;
+const HUM_MIN = 2;
+const HUM_MAX = 100;
+const clampWind = (v: number) => Math.min(WIND_MAX, Math.max(WIND_MIN, Math.round(v)));
+const clampHumidity = (v: number) => Math.min(HUM_MAX, Math.max(HUM_MIN, Math.round(v)));
+
 export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
   language,
   onExploreMap,
 }) => {
-  const [windSpeed, setWindSpeed] = useState<number>(22); // km/h
-  const [humidity, setHumidity] = useState<number>(30); // %
+  const isMn = language === 'mn';
+  const live = useLiveWeather();
+  const [windSpeed, setWindSpeed] = useState<number>(() => clampWind(live.windSpeedKmh));
+  const [humidity, setHumidity] = useState<number>(() => clampHumidity(live.humidityPercent));
   const [fuelType, setFuelType] = useState<'grass' | 'stove' | 'electrical' | 'timber'>('grass');
   const soundActive = useSoundStatus();
 
@@ -71,9 +83,31 @@ export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
                   ? 'bg-[#FF633C] text-white shadow-md shadow-[#FF633C]/20'
                   : 'bg-[#F7F8FA] hover:bg-slate-200 text-[#0B124D]'
               }`}
-              title="Бодит галын дөлийн дуу чимээг асаах/унтраах"
+              title={isMn ? 'Галын дуу чимээ асах/унтраах' : 'Toggle crackling fire ambience'}
             >
-              <span>{soundActive ? '🔥 Чимээ асаалттай' : '🔇 Дуу асаах'}</span>
+              <span>
+                {soundActive
+                  ? (isMn ? '🔥 Чимээ асаалттай' : '🔥 Sound on')
+                  : isMn
+                    ? '🔇 Дуу асаах'
+                    : '🔇 Sound off'}
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                setWindSpeed(clampWind(live.windSpeedKmh));
+                setHumidity(clampHumidity(live.humidityPercent));
+              }}
+              className="px-4 py-2 rounded-2xl text-xs font-mono font-semibold flex items-center gap-2 transition-all shadow-xs bg-[#0B124D]/5 hover:bg-[#0B124D]/12 text-[#0B124D]"
+              title={isMn ? 'Одоогийн бодит цаг агаарын утгуудыг ашиглах' : 'Load observed conditions'}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  live.isLive ? 'bg-[#12B89A] animate-pulse' : 'bg-amber-400'
+                }`}
+              />
+              <span>{isMn ? 'Өнөөдийн нөхцөл' : 'Use live data'}</span>
+              <span className="text-[#FF633C] font-bold">FWI {live.fireWeatherIndex}</span>
             </button>
           </div>
         </div>
@@ -119,10 +153,10 @@ export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
             <div className="z-10 w-full p-3.5 sm:p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-between text-xs gap-3">
               <div className="text-left">
                 <span className="text-[10px] text-white/60 block font-mono">
-                  {language === 'mn' ? 'Оч үсрэх аюултай зай' : 'Simulated Spark Drift'}
+                  {isMn ? 'Оч үсрэх аюултай зай' : 'Simulated spark drift'}
                 </span>
                 <span className="font-mono text-lg sm:text-xl font-bold text-[#FF633C]">
-                  ~{sparkDriftMeters} метр
+                  ~{sparkDriftMeters} {isMn ? 'метр' : 'm'}
                 </span>
               </div>
               <div className="text-right">
@@ -147,21 +181,22 @@ export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
                   <span>{language === 'mn' ? 'Салхины хурд' : 'Wind Velocity'}</span>
                 </span>
                 <span className="font-mono font-bold text-sm text-[#0B124D]">
-                  {windSpeed} км/ц
+                  {windSpeed} {isMn ? 'км/ц' : 'km/h'}
                 </span>
               </div>
               <input
                 type="range"
-                min="0"
-                max="45"
+                min={WIND_MIN}
+                max={WIND_MAX}
                 value={windSpeed}
-                onChange={(e) => setWindSpeed(parseInt(e.target.value))}
+                onChange={(e) => setWindSpeed(clampWind(Number(e.target.value)))}
+                aria-label={isMn ? 'Салхины хурд км/ц' : 'Wind speed in km/h'}
                 className="w-full accent-[#FF633C] cursor-pointer"
               />
               <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                <span>0 км/ц (Намуун)</span>
-                <span>20 км/ц (Салхитай)</span>
-                <span>40+ км/ц (Хүчтэй шуурга)</span>
+                <span>0 {isMn ? 'км/ц · Намуун' : 'km/h · Calm'}</span>
+                <span>45 {isMn ? 'км/ц · Салхитай' : 'km/h · Breezy'}</span>
+                <span>{WIND_MAX}+ {isMn ? 'км/ц · Шуурга' : 'km/h · Storm'}</span>
               </div>
             </div>
 
@@ -182,16 +217,21 @@ export const FireSimulationLab: React.FC<FireSimulationLabProps> = ({
               </div>
               <input
                 type="range"
-                min="15"
-                max="85"
+                min={HUM_MIN}
+                max={HUM_MAX}
                 value={humidity}
-                onChange={(e) => setHumidity(parseInt(e.target.value))}
+                onChange={(e) => setHumidity(clampHumidity(Number(e.target.value)))}
+                aria-label={isMn ? 'Агаарын харьцангуй чийгшил хувиар' : 'Relative humidity in percent'}
                 className="w-full accent-[#0B124D] cursor-pointer"
               />
               <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                <span className="text-[#E93B2F]">15% (Маш хуурай · Аюултай)</span>
-                <span>50% (Хэвийн)</span>
-                <span className="text-[#12B89A]">85% (Бороотой · Аюулгүй)</span>
+                <span className="text-[#E93B2F]">
+                  {HUM_MIN}% {isMn ? '(Маш хуурай · Аюултай)' : '(Very dry · Hazardous)'}
+                </span>
+                <span>50% {isMn ? '(Хэвийн)' : '(Normal)'}</span>
+                <span className="text-[#12B89A]">
+                  {HUM_MAX}% {isMn ? '(Бороотой · Аюулгүй)' : '(Wet · Safe)'}
+                </span>
               </div>
             </div>
 

@@ -52,6 +52,8 @@ export interface KhorooData {
   photoUrl: string;
   landmarksMn: string[];
   landmarksEn: string[];
+  /** True when the unit is a deterministically modelled khoroo rather than curated data */
+  isModelled?: boolean;
 }
 
 export interface DistrictData {

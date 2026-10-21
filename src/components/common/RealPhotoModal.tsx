@@ -1,5 +1,6 @@
 import React from 'react';
 import { Language } from '../../types';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface RealPhotoModalProps {
   isOpen: boolean;
@@ -30,10 +31,20 @@ export const RealPhotoModal: React.FC<RealPhotoModalProps> = ({
 }) => {
   const [viewType, setViewType] = React.useState<'photo' | 'satellite'>('photo');
 
+  useEscapeKey(isOpen, onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+    <div
+      className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-[#0B124D] text-white w-full max-w-4xl rounded-3xl overflow-hidden border border-white/10 shadow-2xl flex flex-col max-h-[92vh]">
         
         {/* Modal Header */}
@@ -85,7 +96,7 @@ export const RealPhotoModal: React.FC<RealPhotoModalProps> = ({
             <button
               onClick={onClose}
               className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors shrink-0"
-              aria-label="Хаах"
+              aria-label={language === 'mn' ? 'Хаах' : 'Close'}
             >
               ✕
             </button>
@@ -105,11 +116,13 @@ export const RealPhotoModal: React.FC<RealPhotoModalProps> = ({
             {/* Overlay Badges */}
             <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex flex-wrap items-center gap-1.5 sm:gap-2">
               <span className="px-2.5 sm:px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-white font-mono text-[10px] sm:text-xs font-bold border border-white/20">
-                {viewType === 'photo' ? '📍 Бодит гэрэл зураг' : '🛰️ 4K Ортофото зураг'}
+                {viewType === 'photo'
+                  ? (language === 'mn' ? '📍 Бодит гэрэл зураг' : '📍 Ground photo')
+                  : (language === 'mn' ? '🛰️ 4K Ортофото зураг' : '🛰️ 4K orthophoto')}
               </span>
               {riskScore !== undefined && (
                 <span className="px-2.5 sm:px-3 py-1 rounded-full bg-[#FF633C] text-white font-mono text-[10px] sm:text-xs font-bold shadow-md">
-                  Эрсдэл: {riskScore}/100
+                  {language === 'mn' ? 'Эрсдэл' : 'Risk'}: {riskScore}/100
                 </span>
               )}
             </div>
@@ -149,7 +162,9 @@ export const RealPhotoModal: React.FC<RealPhotoModalProps> = ({
         {/* Modal Footer */}
         <div className="p-3.5 sm:p-4 border-t border-white/10 bg-black/30 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
           <span className="text-[10px] sm:text-xs text-white/50 font-mono truncate">
-            Эх сурвалж: Нийслэлийн газарзүйн мэдээллийн нэгдсэн сан & ОБЕГ
+            {language === 'mn'
+              ? 'Эх сурвалж: Нийслэлийн газарзүйн мэдээллийн нэгдсэн сан & ОБЕГ'
+              : 'Source: Ulaanbaatar Unified Geospatial Database & NEMA'}
           </span>
           <button
             onClick={onClose}

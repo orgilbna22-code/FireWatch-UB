@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Language, MonthRiskData } from '../../types';
 import { MONTH_RISK_CALENDAR } from '../../data/ubGeoData';
 import { getTranslation } from '../../i18n/translations';
+import { unitKmPerHour } from '../../i18n/labels';
 
 interface RiskCalendarProps {
   language: Language;
@@ -9,7 +10,7 @@ interface RiskCalendarProps {
 
 export const RiskCalendar: React.FC<RiskCalendarProps> = ({ language }) => {
   const t = getTranslation(language);
-  const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(3); // April
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(() => new Date().getMonth());
 
   const activeMonth: MonthRiskData = MONTH_RISK_CALENDAR[selectedMonthIndex];
 
@@ -164,7 +165,7 @@ export const RiskCalendar: React.FC<RiskCalendarProps> = ({ language }) => {
                     {language === 'mn' ? 'Салхины дундаж хурд' : 'Wind Velocity'}
                   </span>
                   <span className="font-mono text-xl font-bold text-[#0B124D]">
-                    {activeMonth.windSpeedKmh} км/ц
+                    {activeMonth.windSpeedKmh} {unitKmPerHour(language === 'mn')}
                   </span>
                 </div>
               </div>

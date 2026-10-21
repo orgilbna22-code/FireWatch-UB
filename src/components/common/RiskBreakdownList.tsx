@@ -1,11 +1,20 @@
 import React from 'react';
 import { DistrictData, KhorooData, Language } from '../../types';
+import { roadAccessLabel } from '../../i18n/labels';
 
 interface RiskBreakdownListProps {
   district?: DistrictData | null;
   khoroo?: KhorooData | null;
   language: Language;
 }
+
+// Extra response-time score per street condition; 'Маш муу' must not read as 'Сайн'
+const ROAD_PENALTY: Record<KhorooData['roadAccessibility'], number> = {
+  Сайн: 0,
+  Дунд: 12,
+  Муу: 25,
+  'Маш муу': 34,
+};
 
 export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
   district,
@@ -34,6 +43,7 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
     factMn: string;
     factEn: string;
     kidElderSummaryMn: string;
+    kidElderSummaryEn: string;
   }
 
   let reasons: ReasonItem[] = [];
@@ -57,17 +67,25 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
         factMn: `Нийт өрхийн ${ger}% нь уламжлалт зуухаар дулаанаа шийддэг (${khoroo.households.toLocaleString()} өрх).`,
         factEn: `${ger}% of households rely on individual heating stoves.`,
         kidElderSummaryMn: 'Гэртээ гал түлэхдээ яндангаа цоорсон эсэхийг байнга шалгаж, халуун үнсээ заавал төмөр тагтай саванд хийх хэрэгтэй.',
+        kidElderSummaryEn: 'Check your stovepipe for holes before every burn, and put hot ash only into a metal container with a lid.',
       },
       {
         titleMn: 'Гал сөнөөгч очих хугацаа & Замын бартаа',
         titleEn: 'Response Time & Narrow Street Delay',
-        rawScore: Math.min(100, Math.max(15, respTime * 5.5 + (khoroo.roadAccessibility === 'Муу' ? 25 : khoroo.roadAccessibility === 'Дунд' ? 12 : 0))),
+        rawScore: Math.min(
+          100,
+          Math.max(
+            15,
+            respTime * 5.5 + ROAD_PENALTY[khoroo.roadAccessibility]
+          )
+        ),
         weight: 0.25,
         reasonMn: `Замын нэвтрэх нөхцөл '${khoroo.roadAccessibility}', уулын бэлийн налуу болон мухар гудамж нь галын том машиныг удаашруулдаг.`,
-        reasonEn: `Road access '${khoroo.roadAccessibility}', hill gradients and narrow dead-ends delay heavy response vehicles.`,
+        reasonEn: `Road access '${roadAccessLabel(khoroo.roadAccessibility, false)}', hill gradients and narrow dead-ends delay heavy response vehicles.`,
         factMn: `Дуудлага өгснөөс хойш гал команд очих тооцоот хугацаа ~${respTime} минут.`,
         factEn: `Estimated emergency arrival transit: ~${respTime} minutes.`,
         kidElderSummaryMn: 'Гудамж нарийн тул машин явахад хэцүү. Хашааны гадаа түлээ, хог тавьж замыг битгий бөглөөрэй.',
+        kidElderSummaryEn: 'The streets are narrow, so engines move slowly. Never block the lane with firewood or rubbish outside your fence.',
       },
       {
         titleMn: 'Ус хангамж & Гал унтраах гидрантын хүрэлцээ',
@@ -83,6 +101,7 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
         factMn: `Тус хороонд нийт ${hydrants} ширхэг ажиллагаатай гидрант байна.`,
         factEn: `Total active hydrants in khoroo: ${hydrants}.`,
         kidElderSummaryMn: 'Энд ус авах цорго цөөхөн тул гал гарвал хурдан унтраахад хэцүү байдаг.',
+        kidElderSummaryEn: 'There are few hydrants here, so a fire takes longer to put out — keep water barrels ready.',
       },
       {
         titleMn: 'Түүхэн дуудлага & Ахуйн нягтрал',
@@ -94,6 +113,7 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
         factMn: `Сүүлийн жилүүдэд бүртгэгдсэн дуудлага: ${incidents} удаа. Хүн ам: ${khoroo.population.toLocaleString()}.`,
         factEn: `Logged recent incidents: ${incidents}. Population: ${khoroo.population.toLocaleString()}.`,
         kidElderSummaryMn: 'Энэ хавьд өмнө нь гал их гарч байсан тул хүн бүр сэрэмжтэй байх ёстой.',
+        kidElderSummaryEn: 'This area has burned before, so every household should keep an exit route clear.',
       },
       {
         titleMn: 'Цахилгааны ачаалал & Цаг агаарын хуурайшилт',
@@ -105,6 +125,7 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
         factMn: 'Өвлийн хүйтрэлт болон хаврын хуурайшилтын өдрүүдэд аюул 1.5 дахин өсдөг.',
         factEn: 'Risk surges by 1.5x during subzero freezes and spring arid winds.',
         kidElderSummaryMn: 'Олон залгуурыг нэг дор залгаж болохгүй. Утас халж гал гарах аюултай.',
+        kidElderSummaryEn: 'Do not plug many heaters into one outlet — the wiring heats up and can start a fire.',
       },
     ];
 
@@ -135,18 +156,33 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
         factMn: f.factMn,
         factEn: f.factEn,
         kidElderSummaryMn: f.kidElderSummaryMn,
+        kidElderSummaryEn: f.kidElderSummaryEn,
       };
     });
   } else if (district) {
     // District level contributions directly from audited dataset
     reasons = district.contributions.map((c, idx) => {
       let kidSummary = 'Зуух, үнс нурмыг аюулгүй байлгах хэрэгтэй.';
-      if (c.nameMn.includes('дуудлага')) kidSummary = 'Энэ дүүрэгт жилд олон зуун галын дуудлага ирдэг тул өндөр эрсдэлтэй бүс юм.';
-      else if (c.nameMn.includes('Зам')) kidSummary = 'Уулын бэл, нарийн мухар замаас болж галын машин хурдан давхиж очиход саад учирдаг.';
-      else if (c.nameMn.includes('халаалт') || c.nameMn.includes('зуух')) kidSummary = 'Айл бүр зуухтай тул өвлийн цагт гал алдах магадлал маш өндөр байдаг.';
-      else if (c.nameMn.includes('анги') || c.nameMn.includes('зай')) kidSummary = 'Гал унтраах анги хол байрладаг тул иртэл нь уддаг.';
-      else if (c.nameMn.includes('Хүн ам')) kidSummary = 'Олон мянган айл өрх шигүү амьдардаг тул нэг айлын гал нөгөө рүүгээ амархан халдаг.';
-      else if (c.nameMn.includes('Улирал') || c.nameMn.includes('Ой')) kidSummary = 'Хаврын хуурай шар салхи нь жижигхэн очоос ч их хэмжээний гал дүрэлзүүлдэг.';
+      let kidSummaryEn = 'Keep stoves and hot ash away from anything that can burn.';
+      if (c.nameMn.includes('дуудлага')) {
+        kidSummary = 'Энэ дүүрэгт жилд олон зуун галын дуудлага ирдэг тул өндөр эрсдэлтэй бүс юм.';
+        kidSummaryEn = 'Hundreds of fire calls reach this district every year, so it is a high-risk area.';
+      } else if (c.nameMn.includes('Зам')) {
+        kidSummary = 'Уулын бэл, нарийн мухар замаас болж галын машин хурдан давхиж очиход саад учирдаг.';
+        kidSummaryEn = 'Hill slopes and narrow dead-end lanes slow the fire engines down.';
+      } else if (c.nameMn.includes('халаалт') || c.nameMn.includes('зуух')) {
+        kidSummary = 'Айл бүр зуухтай тул өвлийн цагт гал алдах магадлал маш өндөр байдаг.';
+        kidSummaryEn = 'Nearly every household burns solid fuel, so winter is the dangerous season.';
+      } else if (c.nameMn.includes('анги') || c.nameMn.includes('зай')) {
+        kidSummary = 'Гал унтраах анги хол байрладаг тул иртэл нь уддаг.';
+        kidSummaryEn = 'The nearest fire station is far away, so help takes longer to arrive.';
+      } else if (c.nameMn.includes('Хүн ам')) {
+        kidSummary = 'Олон мянган айл өрх шигүү амьдардаг тул нэг айлын гал нөгөө рүүгээ амархан халдаг.';
+        kidSummaryEn = 'Households sit close together, so one family fire spreads quickly to the next.';
+      } else if (c.nameMn.includes('Улирал') || c.nameMn.includes('Ой')) {
+        kidSummary = 'Хаврын хуурай шар салхи нь жижигхэн очоос ч их хэмжээний гал дүрэлзүүлдэг.';
+        kidSummaryEn = 'Dry spring winds can turn a single spark into a large fire.';
+      }
 
       return {
         num: `0${idx + 1}`,
@@ -161,6 +197,7 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
         factMn: `Албан ёсны жин: ${c.weight}%, Үзүүлэлтийн оноо: ${c.score}/100`,
         factEn: `Model weight: ${c.weight}%, Raw score: ${c.score}/100`,
         kidElderSummaryMn: kidSummary,
+        kidElderSummaryEn: kidSummaryEn,
       };
     });
   }
@@ -185,7 +222,7 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
             {language === 'mn' ? 'ЭРСДЭЛИЙН НОТЛОХ БАРИМТ' : 'CAUSAL RISK VERIFICATION'}
           </span>
           <span className="px-2.5 py-0.5 rounded-full bg-[#FF633C] text-white text-xs font-mono font-bold">
-            {riskScore}% Эрсдэл
+            {riskScore}% {language === 'mn' ? 'Эрсдэл' : 'Risk'}
           </span>
         </div>
 
@@ -247,7 +284,7 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
                     +{r.percentContribution.toFixed(1)}%
                   </span>
                   <span className="text-[10px] text-[#72778A] block font-mono">
-                    хувь нэмэр
+                    {language === 'mn' ? 'хувь нэмэр' : 'share'}
                   </span>
                 </div>
               </div>
@@ -272,7 +309,7 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
                   <span className="font-bold block text-[11px] text-[#0B124D]">
                     {language === 'mn' ? 'Хүүхэд ба ахмадуудад ойлгомжтой санамж:' : 'Key takeaway:'}
                   </span>
-                  <span>{r.kidElderSummaryMn}</span>
+                  <span>{language === 'mn' ? r.kidElderSummaryMn : r.kidElderSummaryEn}</span>
                 </div>
               </div>
 
@@ -308,7 +345,7 @@ export const RiskBreakdownList: React.FC<RiskBreakdownListProps> = ({
               {totalCalculatedPercent}%
             </span>
             <span className="text-[10px] text-emerald-600 block font-bold font-mono">
-              ✓ Алдаагүй тооцоолол
+              {language === 'mn' ? '✓ Алдаагүй тооцоолол' : '✓ Verified sum'}
             </span>
           </div>
         </div>

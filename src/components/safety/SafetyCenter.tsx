@@ -162,7 +162,7 @@ export const SafetyCenter: React.FC<SafetyCenterProps> = ({ language }) => {
                 {language === 'mn' ? 'Албан ёсны эх сурвалж' : 'Official Citation'}:{' '}
                 {language === 'mn' ? activeGuide.officialSourceMn : activeGuide.officialSourceEn}
               </span>
-              <span>101 / 105 ОБЕГ</span>
+              <span>101 / 105 {language === 'mn' ? 'ОБЕГ' : 'NEMA'}</span>
             </div>
 
           </div>

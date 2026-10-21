@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { ActiveTab, Language, ViewMode } from './types';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
@@ -23,6 +22,7 @@ import { PersonalPortal } from './components/personal/PersonalPortal';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { MobileMenuDrawer } from './components/common/MobileMenuDrawer';
 import { useTheme } from './hooks/useTheme';
+import { liveWeather } from './hooks/liveWeather';
 
 const VALID_TABS: ActiveTab[] = [
   'landing', 'overview', 'map', 'explorer', 'districts', 'incidents',
@@ -43,6 +43,12 @@ export default function App() {
   const [isFamilyModeOpen, setIsFamilyModeOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+
+  // Single shared LIVE weather feed (Open-Meteo) for map ticker, dashboard and weather views
+  useEffect(() => {
+    liveWeather.start();
+    return () => liveWeather.stop();
+  }, []);
 
   // Smooth scroll to top when changing views
   useEffect(() => {
@@ -68,6 +74,12 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  // Stable identities keep overlay key-listeners and focus timers from
+  // re-registering on every App render.
+  const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
+  const closeSourcesModal = useCallback(() => setIsDataSourcesModalOpen(false), []);
+  const closeFamilyMode = useCallback(() => setIsFamilyModeOpen(false), []);
+
   const handleSelectDistrictAndMap = (districtId: string) => {
     setSelectedDistrictId(districtId);
     setActiveTab('map');
@@ -82,7 +94,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#12152A] antialiased selection:bg-[#FF633C]/20 selection:text-[#0B124D] relative w-full max-w-full overflow-x-hidden">
       
       {/* Omnipresent Living Ambient Fire Atmosphere Across Whole Site */}
-      <GlobalFireBackground initialMode="soft" />
+      <GlobalFireBackground initialMode="soft" language={language} />
 
       {/* Universal Top Navigation Header */}
       <Header
@@ -104,7 +116,7 @@ export default function App() {
       {isFamilyModeOpen && (
         <FamilyQuickView
           language={language}
-          onClose={() => setIsFamilyModeOpen(false)}
+          onClose={closeFamilyMode}
           onOpenMap={() => {
             setIsFamilyModeOpen(false);
             setActiveTab('map');
@@ -114,15 +126,7 @@ export default function App() {
 
       {/* Main View Router with Apple-Grade Smooth Transition */}
       <main className={`flex-1 flex flex-col relative w-full max-w-full overflow-x-hidden ${activeTab === 'map' ? '' : 'pb-20 lg:pb-0'}`}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="flex-1 flex flex-col"
-          >
+        <div key={activeTab} className="flex-1 flex flex-col animate-fade-in">
             {activeTab === 'landing' && (
               <div className="flex-1 flex flex-col">
                 <LandingHero
@@ -262,8 +266,7 @@ export default function App() {
                 onSelectDistrict={handleSelectDistrictAndMap}
               />
             )}
-          </motion.div>
-        </AnimatePresence>
+        </div>
       </main>
 
       {/* Footer (Hidden on map view for full screen immersion) */}
@@ -287,7 +290,7 @@ export default function App() {
       {/* Mobile Slide-Over Menu Drawer */}
       <MobileMenuDrawer
         isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
+        onClose={closeMobileMenu}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         language={language}
@@ -302,7 +305,7 @@ export default function App() {
       {/* Data Governance & Demo Transparency Modal */}
       <DataSourcesModal
         isOpen={isDataSourcesModalOpen}
-        onClose={() => setIsDataSourcesModalOpen(false)}
+        onClose={closeSourcesModal}
         language={language}
       />
 

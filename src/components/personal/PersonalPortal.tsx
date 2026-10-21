@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
 import { Language } from '../../types';
-import { UB_DISTRICTS } from '../../data/ubGeoData';
-import { getKhoroosByDistrict } from '../../data/ubKhorooData';
+import { UB_DISTRICTS, getKhoroosByDistrict } from '../../data/ubGeoData';
+import { useLiveWeather } from '../../hooks/liveWeather';
 
 interface PersonalPortalProps {
   language: Language;
   onExploreMap?: () => void;
   onSelectDistrict?: (districtId: string) => void;
 }
+
+interface AuditFactor {
+  labelMn: string;
+  labelEn: string;
+  pts: number;
+  reasonMn: string;
+  reasonEn: string;
+}
+
+// Assembled at runtime so public HTML never contains the literal address
+const CONTACT_USER = 'orgilbna22';
+const CONTACT_HOST = 'gmail.com';
 
 const CO_CREATORS = [
   {
@@ -42,8 +54,12 @@ const CO_CREATORS = [
 export const PersonalPortal: React.FC<PersonalPortalProps> = ({
   language,
   onExploreMap,
+  onSelectDistrict,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'home_audit' | 'creator_profile'>('home_audit');
+  const isMn = language === 'mn';
+  const live = useLiveWeather();
+  const [isEmailShown, setIsEmailShown] = useState(false);
 
   // Form states for Personal Home Audit
   const [districtId, setDistrictId] = useState<string>('bayanzurkh');
@@ -58,27 +74,41 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
   const [ashStorage, setAshStorage] = useState<'metal_box' | 'open_fence' | 'plastic_bucket'>('metal_box');
 
   // Personal emergency plan notes
-  const [customMeetingPoint, setCustomMeetingPoint] = useState<string>('Гудамжны төв гэрлийн шонгийн дэргэд');
+  const [customMeetingPoint, setCustomMeetingPoint] = useState<string>(() =>
+    language === 'mn' ? 'Гудамжны төв гэрлийн шонгийн дэргэд' : 'By the street lamp at our corner'
+  );
   const [emergencyPhone, setEmergencyPhone] = useState<string>('+976 9911-XXXX');
   const [isCopied, setIsCopied] = useState<boolean>(false);
 
   // Khoroos of selected district
   const availableKhoroos = getKhoroosByDistrict(districtId);
+  const selectedKhorooData =
+    availableKhoroos.find((k) => k.khorooNumber === khorooNumber) ?? null;
   const selectedDistrictData = UB_DISTRICTS.find((d) => d.id === districtId) || UB_DISTRICTS[0];
 
   // Calculate Personal Home Fire Risk (%)
   const calculatePersonalRisk = (): {
     score: number;
     level: 'low' | 'moderate' | 'high' | 'very_high';
-    breakdown: { labelMn: string; labelEn: string; pts: number; reasonMn: string }[];
+    breakdown: AuditFactor[];
   } => {
-    let baseScore = selectedDistrictData.riskScore * 0.35; // 35% based on geographical area
-    const breakdown: { labelMn: string; labelEn: string; pts: number; reasonMn: string }[] = [
+    // Use the khoroo record when it exists so the answer reflects your street,
+    // not only the district average.
+    const areaScore = selectedKhorooData
+      ? selectedKhorooData.riskScore
+      : selectedDistrictData.riskScore;
+    let baseScore = areaScore * 0.32;
+    const breakdown: AuditFactor[] = [
       {
-        labelMn: 'Орон зайн дүүргийн суурь эрсдэл',
-        labelEn: 'District Spatial Base',
+        labelMn: selectedKhorooData ? 'Хорооны суурь эрсдэл' : 'Орон зайн дүүргийн суурь эрсдэл',
+        labelEn: selectedKhorooData ? 'Khoroo spatial base' : 'District spatial base',
         pts: Math.round(baseScore),
-        reasonMn: `${selectedDistrictData.nameMn} дүүргийн дэд бүтэц, галын анги хүрэх зайн нөлөө.`,
+        reasonMn: selectedKhorooData
+          ? `${selectedKhorooData.nameMn} (${selectedKhorooData.khorooNumber}-р хороо): анги хүрэх ~${selectedKhorooData.avgResponseTimeMin} мин, гидрант ${selectedKhorooData.fireHydrantCount} ширхэг.`
+          : `${selectedDistrictData.nameMn} дүүргийн дэд бүтэц, галын анги хүрэх зайн нөлөө.`,
+        reasonEn: selectedKhorooData
+          ? `${selectedKhorooData.nameEn}: ~${selectedKhorooData.avgResponseTimeMin} min to a station, ${selectedKhorooData.fireHydrantCount} hydrants on record.`
+          : `${selectedDistrictData.nameEn} infrastructure and station distance.`,
       },
     ];
 
@@ -97,9 +127,17 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
     }
     breakdown.push({
       labelMn: 'Сууцны хийц бүтэц',
-      labelEn: 'Dwelling Structure Material',
+      labelEn: 'Dwelling structure',
       pts: homePts,
       reasonMn: homeReason,
+      reasonEn:
+        homeType === 'ger'
+          ? 'A felt-and-timber ger ignites and flashes over within minutes.'
+          : homeType === 'house_fence'
+            ? 'Wooden fence and outbuildings carry fire across the yard.'
+            : homeType === 'brick_cottage'
+              ? 'Brick slows spread, but the roof void still burns.'
+              : 'Concrete apartment walls limit spread inside the unit.',
     });
 
     // Heating Type pts
@@ -120,9 +158,19 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
     }
     breakdown.push({
       labelMn: 'Халаалтын төхөөрөмж',
-      labelEn: 'Heating Mechanism',
+      labelEn: 'Heating appliance',
       pts: heatPts,
       reasonMn: heatReason,
+      reasonEn:
+        heatingType === 'iron_stove'
+          ? 'A plain iron stove radiates extreme heat and can crack the flue.'
+          : heatingType === 'improved_stove'
+            ? 'Improved stoves still need regular creosote cleaning.'
+            : heatingType === 'boiler'
+              ? 'Low-pressure boilers can overheat their flue channel.'
+              : heatingType === 'electric'
+                ? 'Electric heaters spike circuit load and overheat cords.'
+                : 'Central heating removes the ignition source from the dwelling.',
     });
 
     // Electrical state
@@ -137,9 +185,15 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
     }
     breakdown.push({
       labelMn: 'Цахилгааны аюулгүй байдал',
-      labelEn: 'Electrical Wiring Load',
+      labelEn: 'Electrical load',
       pts: elecPts,
       reasonMn: elecReason,
+      reasonEn:
+        electricalState === 'overloaded'
+          ? 'Many high-wattage devices on one extension lead melt the cable.'
+          : electricalState === 'medium'
+            ? 'Aging wiring should be inspected and renewed.'
+            : 'New cable protected by automatic breakers.',
     });
 
     // Ash Disposal
@@ -155,9 +209,15 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
       }
       breakdown.push({
         labelMn: 'Үнс нурмын хадгалалт',
-        labelEn: 'Ash Disposal Protocol',
+        labelEn: 'Ash disposal',
         pts: ashPts,
         reasonMn: ashReason,
+        reasonEn:
+          ashStorage === 'open_fence'
+            ? 'Dumping hot ash by a wooden fence or dry grass is the most common ignition cause.'
+            : ashStorage === 'plastic_bucket'
+              ? 'Plastic melts in hot ash and sets the yard alight.'
+              : 'Stored in a covered metal container — correct.',
       });
     }
 
@@ -167,18 +227,60 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
       safetyDiscount += 8;
       breakdown.push({
         labelMn: 'Утаа мэдрэгчийн хамгаалалт',
-        labelEn: 'Smoke Detector Credit',
+        labelEn: 'Smoke detector credit',
         pts: -8,
         reasonMn: 'Утаа мэдрэгчтэй тул галыг эхний 60 секундэд илрүүлэх давуу талтай (-8%).',
+        reasonEn: 'A smoke detector buys you the first 60 seconds (-8%).',
       });
     }
     if (hasFireExtinguisher) {
       safetyDiscount += 7;
       breakdown.push({
         labelMn: 'Гал унтраагуурын бэлэн байдал',
-        labelEn: 'Fire Extinguisher Credit',
+        labelEn: 'Extinguisher credit',
         pts: -7,
         reasonMn: 'Гал унтраагууртай тул анхны оч, дөлийг бие даан унтраах боломжтой (-7%).',
+        reasonEn: 'You can kill a starter flame before crews arrive (-7%).',
+      });
+    }
+
+    // Household members who need help to escape
+    if (hasChildren || hasElderly) {
+      const vulnPts = (hasChildren ? 6 : 0) + (hasElderly ? 9 : 0);
+      breakdown.push({
+        labelMn: 'Гэр бүлийн эмзэг гишүүн',
+        labelEn: 'Members needing help',
+        pts: vulnPts,
+        reasonMn:
+          hasChildren && hasElderly
+            ? 'Хүүхэд болон ахмад гишүүн тус тусдаа тусламж шаарддаг тул хоёр гарц бэлтгэ.'
+            : hasElderly
+              ? 'Ахмад гишүүний унтлагыг гарцанд хамгийн ойр, гэрэлтэй байрлалд сонго.'
+              : 'Хүүхдэд зориулсан гарцын дасгалжилтыг сард нэг удаа хий.',
+        reasonEn:
+          hasChildren && hasElderly
+            ? 'Both a child and an elder need assistance, so plan two escape routes.'
+            : hasElderly
+              ? 'Place the elder\u2019s bedroom nearest a lit, level exit.'
+              : 'Practise the escape route with the children once a month.',
+      });
+    }
+
+    // Live meteorological pressure on top of the household profile
+    const dryLoad = Math.max(0, (100 - live.humidityPercent) / 100);
+    const windLoad = Math.min(1, live.windSpeedKmh / 40);
+    const weatherPts = Math.round(dryLoad * 7 + windLoad * 6);
+    if (weatherPts > 0) {
+      breakdown.push({
+        labelMn: 'Өнөөдрийн цаг агаар',
+        labelEn: 'Today\u2019s weather',
+        pts: weatherPts,
+        reasonMn: `Чийгшил ${live.humidityPercent}%, салхи ${live.windSpeedKmh} км/ц${
+          live.isLive ? '' : ' (сүртелц)'
+        }.`,
+        reasonEn: `Humidity ${live.humidityPercent}%, wind ${live.windSpeedKmh} km/h${
+          live.isLive ? '' : ' (sample)'
+        }.`,
       });
     }
 
@@ -199,10 +301,28 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
     window.print();
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+  const handleCopyLink = async () => {
+    const link = window.location.href;
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      // The async clipboard is unavailable over plain http and without focus.
+      const area = document.createElement('textarea');
+      area.value = link;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      const copied = document.execCommand('copy');
+      document.body.removeChild(area);
+      if (!copied) {
+        window.alert(isMn ? `Хуулбарлах боломжгүй байлаа: ${link}` : `Could not copy: ${link}`);
+        return;
+      }
+    }
     setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+    window.setTimeout(() => setIsCopied(false), 2000);
   };
 
   return (
@@ -277,7 +397,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-black/[0.06] shadow-xs space-y-6">
                 <div>
                   <span className="text-[10px] font-mono uppercase tracking-widest text-[#FF633C] font-bold block mb-1">
-                    АЛХАМ 1
+                    {isMn ? 'АЛХАМ 1' : 'STEP 1'}
                   </span>
                   <h3 className="font-editorial text-2xl font-bold text-[#0B124D]">
                     {language === 'mn' ? 'Таны хувийн амьдардаг байршил' : 'Your Residential Location'}
@@ -292,7 +412,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-bold text-[#0B124D] block mb-1.5">
-                      Дүүрэг:
+                      {isMn ? 'Дүүрэг:' : 'District:'}
                     </label>
                     <select
                       value={districtId}
@@ -305,7 +425,9 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                     >
                       {UB_DISTRICTS.map((d) => (
                         <option key={d.id} value={d.id}>
-                          {d.nameMn} дүүрэг (Суурь: {d.riskScore}%)
+                          {isMn
+                            ? `${d.nameMn} дүүрэг (Суурь: ${d.riskScore}/100)`
+                            : `${d.nameEn} district (Base: ${d.riskScore}/100)`}
                         </option>
                       ))}
                     </select>
@@ -313,7 +435,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
 
                   <div>
                     <label className="text-xs font-bold text-[#0B124D] block mb-1.5">
-                      Хороо:
+                      {isMn ? 'Хороо:' : 'Khoroo:'}
                     </label>
                     <select
                       value={khorooNumber}
@@ -322,7 +444,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                     >
                       {availableKhoroos.map((kh) => (
                         <option key={kh.id} value={kh.khorooNumber}>
-                          {kh.nameMn}
+                          {isMn ? kh.nameMn : kh.nameEn}
                         </option>
                       ))}
                     </select>
@@ -334,7 +456,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-black/[0.06] shadow-xs space-y-6">
                 <div>
                   <span className="text-[10px] font-mono uppercase tracking-widest text-[#FF633C] font-bold block mb-1">
-                    АЛХАМ 2
+                    {isMn ? 'АЛХАМ 2' : 'STEP 2'}
                   </span>
                   <h3 className="font-editorial text-2xl font-bold text-[#0B124D]">
                     {language === 'mn' ? 'Сууцны хийц ба Халаалтын төрөл' : 'Structure & Heating Setup'}
@@ -344,14 +466,14 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                 {/* Home Type */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-[#0B124D] block">
-                    Сууцны төрөл:
+                    {isMn ? 'Сууцны төрөл:' : 'Dwelling type:'}
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                     {[
-                      { id: 'ger', label: '🎪 Монгол гэр' },
-                      { id: 'house_fence', label: '🏡 Хашааны байшин' },
-                      { id: 'brick_cottage', label: '🧱 Амины сууц' },
-                      { id: 'apartment', label: '🏢 Орон сууц' },
+                      { id: 'ger', labelMn: '🎪 Монгол гэр', labelEn: '🎪 Ger' },
+                      { id: 'house_fence', labelMn: '🏡 Хашааны байшин', labelEn: '🏡 Fenced house' },
+                      { id: 'brick_cottage', labelMn: '🧱 Амины сууц', labelEn: '🧱 Brick cottage' },
+                      { id: 'apartment', labelMn: '🏢 Орон сууц', labelEn: '🏢 Apartment' },
                     ].map((t) => (
                       <button
                         key={t.id}
@@ -363,7 +485,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                             : 'bg-[#F7F8FA] text-[#72778A] border-black/[0.06] hover:bg-slate-100'
                         }`}
                       >
-                        {t.label}
+                        {isMn ? t.labelMn : t.labelEn}
                       </button>
                     ))}
                   </div>
@@ -372,15 +494,15 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                 {/* Heating Type */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-[#0B124D] block">
-                    Халаалтын төрөл:
+                    {isMn ? 'Халаалтын төрөл:' : 'Heating source:'}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                     {[
-                      { id: 'iron_stove', label: '🔥 Ердийн төмөр зуух' },
-                      { id: 'improved_stove', label: '🪵 Сайжруулсан зуух' },
-                      { id: 'boiler', label: '⚙️ Нам даралтын зуух' },
-                      { id: 'electric', label: '⚡ Цахилгаан халаагуур' },
-                      { id: 'central', label: '🏢 Төвийн дулаан' },
+                      { id: 'iron_stove', labelMn: '🔥 Ердийн төмөр зуух', labelEn: '🔥 Plain iron stove' },
+                      { id: 'improved_stove', labelMn: '🪵 Сайжруулсан зуух', labelEn: '🪵 Improved stove' },
+                      { id: 'boiler', labelMn: '⚙️ Нам даралтын зуух', labelEn: '⚙️ Low-pressure boiler' },
+                      { id: 'electric', labelMn: '⚡ Цахилгаан халаагуур', labelEn: '⚡ Electric heater' },
+                      { id: 'central', labelMn: '🏢 Төвийн дулаан', labelEn: '🏢 Central heating' },
                     ].map((h) => (
                       <button
                         key={h.id}
@@ -392,7 +514,34 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                             : 'bg-[#F7F8FA] text-[#72778A] border-black/[0.06] hover:bg-slate-100'
                         }`}
                       >
-                        {h.label}
+                        {isMn ? h.labelMn : h.labelEn}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Electrical installation condition — drives the +4/+8/+16 factor */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-[#0B124D] block">
+                    {isMn ? 'Цахилгаан сүлжээний төлөв:' : 'Electrical wiring condition:'}
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                    {[
+                      { id: 'safe', labelMn: '🆕 Шинэ суурь шугам, автомат таслууртай', labelEn: '🆕 New wiring with breakers' },
+                      { id: 'medium', labelMn: '🕰️ Хуучирсан утс, шалгаагүй', labelEn: '🕰️ Aged wiring, never inspected' },
+                      { id: 'overloaded', labelMn: '⚠️ Нэг залгуурт олон хүчинтэй төхөөрөж', labelEn: '⚠️ Many appliances on one lead' },
+                    ].map((el) => (
+                      <button
+                        key={el.id}
+                        type="button"
+                        onClick={() => setElectricalState(el.id as 'safe' | 'medium' | 'overloaded')}
+                        className={`p-2.5 rounded-2xl border text-left transition-all ${
+                          electricalState === el.id
+                            ? 'bg-[#0B124D] text-white border-[#0B124D] font-bold shadow-xs'
+                            : 'bg-[#F7F8FA] text-[#72778A] border-black/[0.06] hover:bg-slate-100'
+                        }`}
+                      >
+                        {isMn ? el.labelMn : el.labelEn}
                       </button>
                     ))}
                   </div>
@@ -402,13 +551,13 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                 {(homeType === 'ger' || homeType === 'house_fence') && (
                   <div className="space-y-2 pt-2 border-t border-black/[0.06]">
                     <label className="text-xs font-bold text-[#0B124D] block">
-                      Үнс нурмаа хэрхэн хадгалдаг вэ?
+                      {isMn ? 'Үнс нурмаа хэрхэн хадгалдаг вэ?' : 'How do you store the stove ash?'}
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                       {[
-                        { id: 'metal_box', label: '✓ Төмөр тагтай саванд' },
-                        { id: 'open_fence', label: '⚠️ Хашаандаа ил асгадаг' },
-                        { id: 'plastic_bucket', label: '⚠️ Хуванцар саванд' },
+                        { id: 'metal_box', labelMn: '✓ Төмөр тагтай саванд', labelEn: '✓ Covered metal container' },
+                        { id: 'open_fence', labelMn: '⚠️ Хашаандаа ил асгадаг', labelEn: '⚠️ Dumped by the fence' },
+                        { id: 'plastic_bucket', labelMn: '⚠️ Хуванцар саванд', labelEn: '⚠️ Plastic bucket' },
                       ].map((a) => (
                         <button
                           key={a.id}
@@ -420,7 +569,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                               : 'bg-[#F7F8FA] text-[#72778A] border-black/[0.06]'
                           }`}
                         >
-                          {a.label}
+                          {isMn ? a.labelMn : a.labelEn}
                         </button>
                       ))}
                     </div>
@@ -432,7 +581,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-black/[0.06] shadow-xs space-y-6">
                 <div>
                   <span className="text-[10px] font-mono uppercase tracking-widest text-[#FF633C] font-bold block mb-1">
-                    АЛХАМ 3
+                    {isMn ? 'АЛХАМ 3' : 'STEP 3'}
                   </span>
                   <h3 className="font-editorial text-2xl font-bold text-[#0B124D]">
                     {language === 'mn' ? 'Аврах хэрэгсэл ба Гэр бүлийн гишүүд' : 'Safety Equipment & Family'}
@@ -440,9 +589,11 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div
+                  <button
+                    type="button"
+                    aria-pressed={hasSmokeDetector}
                     onClick={() => setHasSmokeDetector(!hasSmokeDetector)}
-                    className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
+                    className={`w-full text-left p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
                       hasSmokeDetector
                         ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
                         : 'bg-[#F7F8FA] border-black/[0.06] text-[#72778A]'
@@ -451,16 +602,20 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                     <div className="flex items-center gap-2.5">
                       <span className="text-xl">🚨</span>
                       <div>
-                        <span>Утаа мэдрэгчтэй</span>
-                        <span className="text-[10px] block opacity-75 font-normal">Эрсдэлийг 8% бууруулна</span>
+                        <span>{isMn ? 'Утаа мэдрэгчтэй' : 'Smoke detector'}</span>
+                        <span className="text-[10px] block opacity-75 font-normal">
+                          {isMn ? 'Эрсдэлийг 8% бууруулна' : 'Cuts risk by 8%'}
+                        </span>
                       </div>
                     </div>
                     <span className="text-base">{hasSmokeDetector ? '☑' : '☐'}</span>
-                  </div>
+                  </button>
 
-                  <div
+                  <button
+                    type="button"
+                    aria-pressed={hasFireExtinguisher}
                     onClick={() => setHasFireExtinguisher(!hasFireExtinguisher)}
-                    className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
+                    className={`w-full text-left p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
                       hasFireExtinguisher
                         ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold'
                         : 'bg-[#F7F8FA] border-black/[0.06] text-[#72778A]'
@@ -469,16 +624,20 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                     <div className="flex items-center gap-2.5">
                       <span className="text-xl">🧯</span>
                       <div>
-                        <span>Гал унтраагууртай</span>
-                        <span className="text-[10px] block opacity-75 font-normal">Эрсдэлийг 7% бууруулна</span>
+                        <span>{isMn ? 'Гал унтраагууртай' : 'Fire extinguisher'}</span>
+                        <span className="text-[10px] block opacity-75 font-normal">
+                          {isMn ? 'Эрсдэлийг 7% бууруулна' : 'Cuts risk by 7%'}
+                        </span>
                       </div>
                     </div>
                     <span className="text-base">{hasFireExtinguisher ? '☑' : '☐'}</span>
-                  </div>
+                  </button>
 
-                  <div
+                  <button
+                    type="button"
+                    aria-pressed={hasChildren}
                     onClick={() => setHasChildren(!hasChildren)}
-                    className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
+                    className={`w-full text-left p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
                       hasChildren
                         ? 'bg-orange-50 border-orange-200 text-[#0B124D] font-bold'
                         : 'bg-[#F7F8FA] border-black/[0.06] text-[#72778A]'
@@ -487,16 +646,20 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                     <div className="flex items-center gap-2.5">
                       <span className="text-xl">👶</span>
                       <div>
-                        <span>0-7 насны бага хүүхэдтэй</span>
-                        <span className="text-[10px] block opacity-75 font-normal">Зуухны хамгаалалт шаардлагатай</span>
+                        <span>{isMn ? '0-7 насны бага хүүхэдтэй' : 'Child aged 0-7 in the home'}</span>
+                        <span className="text-[10px] block opacity-75 font-normal">
+                          {isMn ? 'Зуухны хамгаалалт шаардлагатай' : 'Needs a stove guard'}
+                        </span>
                       </div>
                     </div>
                     <span className="text-base">{hasChildren ? '☑' : '☐'}</span>
-                  </div>
+                  </button>
 
-                  <div
+                  <button
+                    type="button"
+                    aria-pressed={hasElderly}
                     onClick={() => setHasElderly(!hasElderly)}
-                    className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
+                    className={`w-full text-left p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
                       hasElderly
                         ? 'bg-orange-50 border-orange-200 text-[#0B124D] font-bold'
                         : 'bg-[#F7F8FA] border-black/[0.06] text-[#72778A]'
@@ -505,12 +668,14 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                     <div className="flex items-center gap-2.5">
                       <span className="text-xl">👵</span>
                       <div>
-                        <span>65+ насны өндөр настантай</span>
-                        <span className="text-[10px] block opacity-75 font-normal">Шуурхай аврах төлөвлөгөө хэрэгтэй</span>
+                        <span>{isMn ? '65+ насны өндөр настантай' : 'Elder aged 65+ in the home'}</span>
+                        <span className="text-[10px] block opacity-75 font-normal">
+                          {isMn ? 'Шуурхай аврах төлөвлөгөө хэрэгтэй' : 'Needs an assisted escape plan'}
+                        </span>
                       </div>
                     </div>
                     <span className="text-base">{hasElderly ? '☑' : '☐'}</span>
-                  </div>
+                  </button>
                 </div>
               </div>
 
@@ -523,15 +688,18 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
               <div className="bg-[#0B124D] text-white p-6 sm:p-8 rounded-3xl shadow-xl space-y-6 border border-white/10 relative overflow-hidden">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono uppercase tracking-widest text-[#FF633C] font-bold">
-                    ТАНЫ ХУВИЙН ҮНЭЛГЭЭ
+                    {isMn ? 'ТАНЫ ХУВИЙН ҮНЭЛГЭЭ' : 'YOUR PERSONAL VERDICT'}
                   </span>
                   <span className={`px-2.5 py-0.5 rounded-full font-mono text-xs font-bold ${
                     personalRisk.score >= 75 ? 'bg-red-500 text-white' :
                     personalRisk.score >= 55 ? 'bg-[#FF633C] text-white' :
                     'bg-[#12B89A] text-[#0B124D]'
                   }`}>
-                    {personalRisk.score >= 75 ? 'Маш өндөр эрсдэлтэй' :
-                     personalRisk.score >= 55 ? 'Өндөр эрсдэлтэй' : 'Дунд эрсдэлтэй'}
+                    {personalRisk.score >= 75
+                      ? (isMn ? 'Маш өндөр эрсдэлтэй' : 'Very high risk')
+                      : personalRisk.score >= 55
+                        ? (isMn ? 'Өндөр эрсдэлтэй' : 'High risk')
+                        : (isMn ? 'Дунд эрсдэлтэй' : 'Moderate risk')}
                   </span>
                 </div>
 
@@ -541,24 +709,54 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                       {personalRisk.score}%
                     </span>
                     <span className="text-sm font-mono text-white/70">
-                      хувийн эрсдэл
+                      {isMn ? 'хувийн эрсдэл' : 'personal risk'}
                     </span>
                   </div>
                   <p className="text-xs text-white/80 mt-2 leading-relaxed">
-                    Энэ нь таны сонгосон дүүрэг, сууцны төрөл, халаалт болон тоноглолын байдалд үндэслэсэн бодит магадлал юм.
+                    {isMn
+                      ? `Энэ үзүүлэлт ${
+                          selectedKhorooData
+                            ? `${selectedKhorooData.nameMn} (${selectedKhorooData.khorooNumber}-р хороо)`
+                            : selectedDistrictData.nameMn
+                        }, сууцны төрөл, халаалт, тоноглол болон өнөөдрийн цаг агаараас хамаарч байна.`
+                      : `Derived from ${
+                          selectedKhorooData ? selectedKhorooData.nameEn : selectedDistrictData.nameEn
+                        }, your dwelling, heating, equipment and today's weather.`}
                   </p>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-white/60 mt-2">
+                    <span className="flex items-center gap-1">
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          live.isLive ? 'bg-[#12B89A] animate-pulse' : 'bg-amber-400'
+                        }`}
+                      />
+                      {live.isLive ? 'LIVE' : isMn ? 'ДЕМО' : 'DEMO'}
+                    </span>
+                    <span>
+                      {live.tempCelsius}°C · {isMn ? 'чийгшил' : 'RH'} {live.humidityPercent}% ·{' '}
+                      {live.windSpeedKmh} {isMn ? 'км/ц' : 'km/h'}
+                    </span>
+                    <span className="text-[#FF633C] font-bold">FWI {live.fireWeatherIndex}</span>
+                  </div>
                 </div>
 
                 {/* Factors List */}
                 <div className="space-y-2 pt-4 border-t border-white/10">
                   <span className="text-[11px] font-mono text-white/60 uppercase block">
-                    БҮРДҮҮЛЭГЧ ХҮЧИН ЗҮЙЛСИЙН ЖАГСААЛТ:
+                    {isMn ? 'БҮРДҮҮЛЭГЧ ХҮЧИН ЗҮЙЛСИЙН ЖАГСААЛТ:' : 'CONTRIBUTING FACTORS:'}
                   </span>
-                  {personalRisk.breakdown.map((item, idx) => (
-                    <div key={idx} className="flex items-start justify-between text-xs py-1 border-b border-white/5">
+                  {personalRisk.breakdown.map((item) => (
+                    <div
+                      key={item.labelEn}
+                      className="flex items-start justify-between text-xs py-1 border-b border-white/5"
+                    >
                       <div className="pr-2">
-                        <span className="font-semibold text-white/95 block">{item.labelMn}</span>
-                        <span className="text-[10px] text-white/60">{item.reasonMn}</span>
+                        <span className="font-semibold text-white/95 block">
+                          {isMn ? item.labelMn : item.labelEn}
+                        </span>
+                        <span className="text-[10px] text-white/60">
+                          {(isMn ? item.reasonMn : item.reasonEn) ?? item.reasonMn}
+                        </span>
                       </div>
                       <span className={`font-mono text-xs font-bold shrink-0 ${
                         item.pts < 0 ? 'text-emerald-400' : 'text-[#FF633C]'
@@ -572,34 +770,36 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                 {/* Quick Map Button */}
                 {onExploreMap && (
                   <button
-                    onClick={onExploreMap}
+                    onClick={() => (onSelectDistrict ? onSelectDistrict(districtId) : onExploreMap())}
                     className="w-full py-3 bg-[#FF633C] hover:bg-[#ff5122] text-white text-xs font-bold rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
                   >
                     <span>🗺️</span>
-                    <span>Энэ байршлыг газрын зураг дээр шалгах</span>
+                    <span>{isMn ? 'Энэ байршлыг газрын зураг дээр шалгах' : 'Inspect this location on the map'}</span>
                   </button>
                 )}
               </div>
 
               {/* Printable Family Evacuation Card */}
-              <div className="bg-white p-6 rounded-3xl border border-black/[0.06] shadow-xs space-y-4">
+              <div id="evac-card-print" className="bg-white p-6 rounded-3xl border border-black/[0.06] shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">🪪</span>
                     <div>
                       <h4 className="font-bold text-sm text-[#0B124D]">
-                        Гэр бүлийн хувийн аврах хуудас
+                        {isMn ? 'Гэр бүлийн хувийн аврах хуудас' : 'Family escape card'}
                       </h4>
                       <span className="text-[10px] text-[#72778A]">
-                        Хэвлэж аваад хаалга эсвэл хөргөгч дээрээ наана уу
+                        {isMn
+                          ? 'Хэвлэж аваад хаалга эсвэл хөргөгч дээрээ наана уу'
+                          : 'Print it and stick it on a door or fridge'}
                       </span>
                     </div>
                   </div>
 
                   <button
                     onClick={handlePrintCard}
-                    className="p-2 bg-slate-100 hover:bg-slate-200 text-[#0B124D] rounded-xl text-xs font-semibold transition-colors"
-                    title="Хэвлэх"
+                    className="print:hidden p-2 bg-slate-100 hover:bg-slate-200 text-[#0B124D] rounded-xl text-xs font-semibold transition-colors"
+                    title={isMn ? 'Хэвлэх' : 'Print'}
                   >
                     🖨️
                   </button>
@@ -608,7 +808,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                 <div className="space-y-3 bg-[#F7F8FA] p-4 rounded-2xl text-xs border border-black/[0.04]">
                   <div>
                     <span className="text-[#72778A] block text-[10px] uppercase font-mono">
-                      Гэр бүлийн уулзах цэг (Muster Point):
+                      {isMn ? 'Гэр бүлийн уулзах цэг (Muster Point):' : 'Family meeting point:'}
                     </span>
                     <input
                       type="text"
@@ -620,7 +820,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
 
                   <div>
                     <span className="text-[#72778A] block text-[10px] uppercase font-mono">
-                      Яаралтай холбоо барих утас:
+                      {isMn ? 'Яаралтай холбоо барих утас:' : 'Emergency contact:'}
                     </span>
                     <input
                       type="text"
@@ -631,20 +831,22 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                   </div>
 
                   <div className="pt-2 border-t border-black/[0.06] grid grid-cols-2 gap-2 text-center font-mono text-[11px]">
-                    <div className="p-2 bg-red-100 text-red-700 rounded-xl font-bold">
-                      🚒 101 - Гал түймэр
+                    <div data-print-tone="fire" className="p-2 bg-red-100 text-red-700 rounded-xl font-bold">
+                      {isMn ? '🚒 101 - Гал түймэр' : '🚒 101 - Fire'}
                     </div>
-                    <div className="p-2 bg-amber-100 text-amber-800 rounded-xl font-bold">
-                      🚑 103 - Түргэн тусламж
+                    <div data-print-tone="medical" className="p-2 bg-amber-100 text-amber-800 rounded-xl font-bold">
+                      {isMn ? '🚑 103 - Түргэн тусламж' : '🚑 103 - Ambulance'}
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={handleCopyLink}
-                  className="w-full py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#0B124D] hover:bg-slate-100 transition-colors"
+                  className="print:hidden w-full py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#0B124D] hover:bg-slate-100 transition-colors"
                 >
-                  {isCopied ? '✓ Холбоос хуулагдлаа!' : '🔗 Энэ тооцоолуурыг бусдад хуваалцах'}
+                  {isCopied
+                    ? (isMn ? '✓ Холбоос хуулагдлаа!' : '✓ Link copied!')
+                    : (isMn ? '🔗 Энэ тооцоолуурыг бусдад хуваалцах' : '🔗 Share this calculator')}
                 </button>
               </div>
 
@@ -683,7 +885,7 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                 </div>
 
                 <h2 className="font-editorial text-3xl sm:text-4xl font-bold text-[#0B124D]">
-                  Оргил (Orgil)
+                  {isMn ? 'Оргил (Orgil)' : 'Orgil'}
                 </h2>
 
                 <p className="text-sm sm:text-base text-[#4B5563] leading-relaxed max-w-2xl">
@@ -693,16 +895,28 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                 </p>
 
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
-                  <a
-                    href="mailto:orgilbna22@gmail.com"
-                    className="px-5 py-2.5 bg-[#0B124D] hover:bg-[#11166B] text-white text-xs font-bold rounded-2xl shadow-md transition-all active:scale-95 flex items-center gap-2"
-                  >
-                    <span>✉️</span>
-                    <span>orgilbna22@gmail.com</span>
-                  </a>
+                  {isEmailShown ? (
+                    <a
+                      href={`mailto:${CONTACT_USER}@${CONTACT_HOST}`}
+                      className="px-5 py-2.5 bg-[#0B124D] hover:bg-[#11166B] text-white text-xs font-bold rounded-2xl shadow-md transition-all active:scale-95 flex items-center gap-2"
+                    >
+                      <span>✉️</span>
+                      <span>
+                        {CONTACT_USER}@{CONTACT_HOST}
+                      </span>
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => setIsEmailShown(true)}
+                      className="px-5 py-2.5 bg-[#0B124D]/8 hover:bg-[#0B124D]/15 text-[#0B124D] text-xs font-bold rounded-2xl transition-all active:scale-95 flex items-center gap-2"
+                    >
+                      <span>✉️</span>
+                      <span>{isMn ? 'Имэйл харуулах' : 'Show email'}</span>
+                    </button>
+                  )}
 
                   <span className="px-3.5 py-2.5 bg-[#F7F8FA] border border-black/[0.06] rounded-2xl text-xs font-mono text-[#0B124D] font-semibold">
-                    📍 Улаанбаатар, Монгол
+                    {isMn ? '📍 Улаанбаатар, Монгол' : '📍 Ulaanbaatar, Mongolia'}
                   </span>
                 </div>
               </div>
@@ -799,10 +1013,10 @@ export const PersonalPortal: React.FC<PersonalPortalProps> = ({
                 </p>
                 <div className="pt-2">
                   <a
-                    href="mailto:orgilbna22@gmail.com"
+                    href={`mailto:${CONTACT_USER}@${CONTACT_HOST}`}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FF633C] hover:underline"
                   >
-                    <span>Санал илгээх →</span>
+                    <span>{isMn ? 'Санал илгээх →' : 'Send a suggestion →'}</span>
                   </a>
                 </div>
               </div>

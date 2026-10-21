@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActiveTab, Language } from '../../types';
 import { getTranslation } from '../../i18n/translations';
+import { unitKmPerHour } from '../../i18n/labels';
 import { UB_DISTRICTS, MONTH_RISK_CALENDAR } from '../../data/ubGeoData';
 import { RISK_VARIABLES_METADATA } from '../../data/riskConfig';
 import { SAFETY_GUIDES } from '../../data/safetyData';
@@ -177,7 +178,7 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({
                     {v.code}
                   </span>
                   <span className="text-xs font-mono font-bold text-[#0B124D] bg-white px-2 py-0.5 rounded border border-[#0B124D]/10">
-                    {v.weightPercent}% жин
+                    {v.weightPercent}% {language === 'mn' ? 'жин' : 'weight'}
                   </span>
                 </div>
                 <h4 className="font-bold text-sm text-[#0B124D] mb-1.5">
@@ -340,7 +341,7 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({
                   </span>
                 </div>
                 <div className="text-[11px] text-[#72778A] truncate mb-1">
-                  {m.avgTempCelsius}°C · {m.windSpeedKmh} км/ц
+                  {m.avgTempCelsius}°C · {m.windSpeedKmh} {unitKmPerHour(language === 'mn')}
                 </div>
                 <div className="text-[10px] text-[#0B124D] font-medium line-clamp-1">
                   {language === 'mn' ? m.primaryDriversMn[0] : m.primaryDriversEn[0]}

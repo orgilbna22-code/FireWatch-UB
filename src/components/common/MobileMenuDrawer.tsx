@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ActiveTab, Language, Theme } from '../../types';
 import { soundEngine, useSoundStatus } from './AudioAmbiance';
@@ -32,6 +32,23 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
 }) => {
   const isMn = language === 'mn';
   const soundOn = useSoundStatus();
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusTimer = window.setTimeout(() => panelRef.current?.focus(), 80);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      window.clearTimeout(focusTimer);
+    };
+  }, [isOpen, onClose]);
 
   const selectTab = (tab: ActiveTab) => {
     setActiveTab(tab);
@@ -79,6 +96,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
+            aria-hidden="true"
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
           />
 
@@ -88,7 +106,12 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="relative w-full max-w-[340px] bg-white h-full shadow-2xl flex flex-col z-10 overflow-hidden"
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={isMn ? 'Үндсэн цэс' : 'Main navigation menu'}
+            tabIndex={-1}
+            className="relative w-full max-w-[340px] bg-white h-full shadow-2xl flex flex-col z-10 overflow-hidden focus:outline-none"
           >
             {/* Drawer Header */}
             <div className="p-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F7F8FA]">
@@ -109,7 +132,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
               <button
                 onClick={onClose}
                 className="w-9 h-9 rounded-full bg-white hover:bg-slate-200 border border-black/[0.08] flex items-center justify-center text-[#72778A] hover:text-[#0B124D] transition-colors"
-                aria-label="Хаах"
+                aria-label={isMn ? 'Хаах' : 'Close menu'}
               >
                 ✕
               </button>
@@ -136,7 +159,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
                 }`}
               >
                 <span>{soundOn ? '🔥' : '🔇'}</span>
-                <span>{soundOn ? 'Чимээ' : 'Дуугүй'}</span>
+                <span>{soundOn ? (isMn ? 'Чимээтэй' : 'Sound on') : (isMn ? 'Дуугүй' : 'Muted')}</span>
               </button>
 
               {/* Emergency Call 101 */}
@@ -150,40 +173,44 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
             </div>
 
             {/* Night Mode Toggle Row */}
-            <button
-              onClick={onToggleTheme}
-              className={`w-full mx-3 px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-colors ${
-                theme === 'dark'
-                  ? 'bg-[#0B124D] text-white border-[#0B124D]'
-                  : 'bg-[#F7F8FA] border-black/[0.08] text-[#0B124D] hover:bg-slate-100'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
-                <span>{isMn ? (theme === 'dark' ? 'Шөнийн горим асаалттай' : 'Шөнийн горим') : (theme === 'dark' ? 'Night mode on' : 'Night mode')}</span>
-              </span>
-              <span
-                className={`w-9 h-5 rounded-full relative transition-colors ${
-                  theme === 'dark' ? 'bg-[#FF633C]' : 'bg-slate-300'
+            <div className="px-3 pt-3">
+              <button
+                onClick={onToggleTheme}
+                className={`w-full px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-colors ${
+                  theme === 'dark'
+                    ? 'bg-[#0B124D] text-white border-[#0B124D]'
+                    : 'bg-[#F7F8FA] border-black/[0.08] text-[#0B124D] hover:bg-slate-100'
                 }`}
               >
+                <span className="flex items-center gap-2">
+                  <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+                  <span>{isMn ? (theme === 'dark' ? 'Шөнийн горим асаасан' : 'Шөнийн горим') : (theme === 'dark' ? 'Night mode on' : 'Night mode')}</span>
+                </span>
                 <span
-                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${
-                    theme === 'dark' ? 'left-[18px]' : 'left-0.5'
+                  className={`w-9 h-5 rounded-full relative transition-colors ${
+                    theme === 'dark' ? 'bg-[#FF633C]' : 'bg-slate-300'
                   }`}
-                />
-              </span>
-            </button>
+                >
+                  <span
+                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${
+                      theme === 'dark' ? 'left-[18px]' : 'left-0.5'
+                    }`}
+                  />
+                </span>
+              </button>
+            </div>
 
             {/* Scrollable Navigation Body */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
               {/* Family Mode Quick Toggle Banner */}
-              <div
+              <button
+                type="button"
+                aria-pressed={isFamilyModeOpen}
                 onClick={() => {
                   onToggleFamilyMode();
                   onClose();
                 }}
-                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                   isFamilyModeOpen
                     ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
                     : 'bg-amber-50 border-amber-200/80 text-amber-950 hover:bg-amber-100/60'
@@ -203,7 +230,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
                 <span className="text-xs font-bold">
                   {isFamilyModeOpen ? (isMn ? 'Нээлттэй' : 'Open') : (isMn ? 'Нээх →' : 'Open →')}
                 </span>
-              </div>
+              </button>
 
               {/* Navigation Sections */}
               {sections.map((sec, sIdx) => (
@@ -259,7 +286,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
             {/* Drawer Footer */}
             <div className="p-3 border-t border-black/[0.06] bg-[#F7F8FA] text-center">
               <span className="text-[10px] font-mono text-[#72778A]">
-                FIREWATCH UB · Нийслэлийн галын эрсдэлийн тандалт
+                {isMn ? 'FIREWATCH UB · Нийслэлийн галын эрсдэлийн тандалт' : 'FIREWATCH UB · Citywide fire risk intelligence'}
               </span>
             </div>
           </motion.div>

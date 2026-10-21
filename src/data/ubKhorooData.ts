@@ -1,6 +1,10 @@
 import { KhorooData } from '../types';
 
-export const UB_KHOROOS: KhorooData[] = [
+/**
+ * Hand-curated sample khoroos. The full 204-khoroo coverage is assembled in
+ * `ubGeoData.ts`, which tops these up with deterministic modelled units.
+ */
+export const UB_KHOROOS_CURATED: KhorooData[] = [
   // ==========================================
   // БАЯНЗҮРХ ДҮҮРЭГ (43 хороотой)
   // ==========================================
@@ -819,7 +823,3 @@ export const UB_KHOROOS: KhorooData[] = [
     landmarksEn: ['Bagakhangai Railway Station', 'District Administration', 'School & Kindergarten']
   }
 ];
-
-export const getKhoroosByDistrict = (districtId: string): KhorooData[] => {
-  return UB_KHOROOS.filter((k) => k.districtId === districtId);
-};

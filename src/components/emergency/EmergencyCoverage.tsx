@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FireStation, Language } from '../../types';
 import { UB_FIRE_STATIONS } from '../../data/ubGeoData';
 import { getTranslation } from '../../i18n/translations';
+import { unitKm, stationCodeLabel } from '../../i18n/labels';
 
 interface EmergencyCoverageProps {
   language: Language;
@@ -66,6 +67,15 @@ export const EmergencyCoverage: React.FC<EmergencyCoverageProps> = ({
               return (
                 <div
                   key={sta.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedStation(sta);
+                    }
+                  }}
                   onClick={() => setSelectedStation(sta)}
                   className={`p-4 rounded-xl cursor-pointer transition-all border ${
                     isSelected
@@ -75,10 +85,10 @@ export const EmergencyCoverage: React.FC<EmergencyCoverageProps> = ({
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[11px] font-mono font-bold text-[#FF633C] uppercase">
-                      {sta.code}
+                      {stationCodeLabel(sta.code, language === 'mn')}
                     </span>
                     <span className="text-[11px] font-mono text-[#72778A]">
-                      Радиус: ~{sta.coverageRadiusKm} км
+                      {(language === 'mn' ? 'Радиус:' : 'Radius:')} ~{sta.coverageRadiusKm} {unitKm(language === 'mn')}
                     </span>
                   </div>
                   <h4 className="font-bold text-sm text-[#0B124D] mb-1">
@@ -96,7 +106,8 @@ export const EmergencyCoverage: React.FC<EmergencyCoverageProps> = ({
           <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-2xl border border-[#0B124D]/8 shadow-xs space-y-6">
             <div className="pb-6 border-b border-[#0B124D]/8">
               <span className="text-xs font-mono font-bold text-[#FF633C] uppercase tracking-wider block mb-1">
-                {selectedStation.code} · ОБЕГ
+                {stationCodeLabel(selectedStation.code, language === 'mn')} ·{' '}
+                {language === 'mn' ? 'ОБЕГ' : 'NEMA'}
               </span>
               <h2 className="font-editorial text-3xl font-bold text-[#0B124D]">
                 {language === 'mn' ? selectedStation.nameMn : selectedStation.nameEn}
@@ -137,7 +148,7 @@ export const EmergencyCoverage: React.FC<EmergencyCoverageProps> = ({
                   {language === 'mn' ? 'Үйлчлэх бүсийн радиус' : 'Nominal Buffer Radius'}
                 </span>
                 <span className="font-mono text-2xl font-bold text-[#FF633C]">
-                  {selectedStation.coverageRadiusKm} км
+                  {selectedStation.coverageRadiusKm} {unitKm(language === 'mn')}
                 </span>
                 <span className="text-[10px] text-[#72778A] block mt-1">
                   {language === 'mn' ? 'Орон зайн шууд хүрэх зай' : 'Primary buffer'}

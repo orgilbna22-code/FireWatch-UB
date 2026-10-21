@@ -103,7 +103,7 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <span className="text-white/40 block pt-2 text-[11px]">
-                  ОБЕГ Онцгой байдлын утас:{' '}
+                  {language === 'mn' ? 'ОБЕГ Онцгой байдлын утас:' : 'NEMA emergency hotlines:'}{' '}
                   <a href="tel:101" className="text-white font-mono hover:text-[#FF633C] transition-colors">
                     101
                   </a>

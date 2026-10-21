@@ -202,7 +202,7 @@ export const FireAnimation: React.FC<FireAnimationProps> = ({
       onClick={handleClick}
       style={{ width: `${dim.w}px`, height: `${dim.h}px` }}
       className={`relative flex flex-col items-center justify-end select-none cursor-pointer transition-transform duration-200 active:scale-95 group ${className}`}
-      title="Амьд галын дөл: Хулганаараа налуулж, дарж оч үсэргэнэ үү"
+      title="Амьд галын дөл — дарахад оч үсэрнэ · Interactive flame — click to throw sparks"
     >
       {/* 1. Soft Warm Ambient Halo Glow */}
       <div

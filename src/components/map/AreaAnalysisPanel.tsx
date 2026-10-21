@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { DistrictData, KhorooData, Language } from '../../types';
 import { getTranslation } from '../../i18n/translations';
+import { roadAccessLabel } from '../../i18n/labels';
+import { escapeHtml } from '../../utils/safeHtml';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { RealPhotoModal } from '../common/RealPhotoModal';
 import { RiskBreakdownList } from '../common/RiskBreakdownList';
 
@@ -22,9 +25,11 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
   onNavigateToDetail,
 }) => {
   const t = getTranslation(language);
+  const isMn = language === 'mn';
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'reasons' | 'khoroos' | 'infrastructure'>('reasons');
   const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+  useEscapeKey(isMobileExpanded && !isPhotoModalOpen, () => setIsMobileExpanded(false));
 
   if (!district && !selectedKhoroo) return null;
 
@@ -74,12 +79,15 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
       >
         
         {/* Mobile Drag / Peek Handle Bar */}
-        <div
+        <button
+          type="button"
+          aria-expanded={isMobileExpanded}
+          aria-label={isMn ? 'Дэлгэрэнгүй хэсгийг нээх / хаах' : 'Open or close the detail sheet'}
           onClick={() => setIsMobileExpanded(!isMobileExpanded)}
           className="lg:hidden w-full pt-2.5 pb-1 flex flex-col items-center justify-center cursor-pointer active:bg-slate-50"
         >
           <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
-        </div>
+        </button>
 
         {/* Panel Header */}
         <div className="p-3 sm:p-5 border-b border-black/[0.06] flex items-center justify-between bg-[#F7F8FA]">
@@ -89,7 +97,9 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
           >
             <div className="flex items-center gap-2 mb-0.5">
               <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-widest text-[#FF633C] uppercase block">
-                {isKhorooView ? 'ХОРООНЫ ЭРСДЭЛ' : 'ДҮҮРГИЙН ЭРСДЭЛ'}
+                {isMn
+                  ? isKhorooView ? 'ХОРООНЫ ЭРСДЭЛ' : 'ДҮҮРГИЙН ЭРСДЭЛ'
+                  : isKhorooView ? 'KHOROO RISK' : 'DISTRICT RISK'}
               </span>
               <span className={`px-2 py-0.5 rounded-full font-mono text-[10px] font-bold ${riskBadgeColor}`}>
                 {activeRiskScore}%
@@ -102,7 +112,7 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                   }}
                   className="text-[10px] font-mono text-[#0B124D] underline hover:text-[#FF633C] font-semibold"
                 >
-                  ← Дүүрэг
+                  {isMn ? '← Дүүрэг' : '← District'}
                 </button>
               )}
             </div>
@@ -120,22 +130,22 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
               onClick={() => setIsMobileExpanded(!isMobileExpanded)}
               className="lg:hidden px-2.5 py-1.5 rounded-xl bg-[#0B124D] text-white text-[11px] font-bold transition-all active:scale-95 shadow-2xs"
             >
-              {isMobileExpanded ? 'Хураах ↓' : 'Дэлгэрэнгүй ↑'}
+              {isMn ? (isMobileExpanded ? 'Хураах ↓' : 'Дэлгэрэнгүй ↑') : isMobileExpanded ? 'Collapse ↓' : 'Details ↑'}
             </button>
 
             <button
               onClick={() => setIsPhotoModalOpen(true)}
               className="px-2.5 py-1.5 rounded-xl bg-black/5 hover:bg-[#FF633C] hover:text-white text-[#0B124D] text-xs font-semibold transition-all hidden lg:flex items-center gap-1"
-              title="Бодит фото зураг томруулах"
+              title={isMn ? 'Бодит фото зураг томруулах' : 'Open the real-world photo'}
             >
               <span>📷</span>
-              <span>Бодит</span>
+              <span>{isMn ? 'Бодит' : 'Photo'}</span>
             </button>
 
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-full bg-white hover:bg-slate-200 border border-black/[0.08] flex items-center justify-center text-[#72778A] hover:text-[#0B124D] transition-colors"
-              aria-label="Хаах"
+              aria-label={isMn ? 'Хаах' : 'Close'}
             >
               ✕
             </button>
@@ -154,7 +164,7 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                   : 'text-[#72778A] hover:text-[#0B124D]'
               }`}
             >
-              📋 Шалтгаан
+              {isMn ? '📋 Шалтгаан' : '📋 Reasons'}
             </button>
             {!isKhorooView && district?.khoroos && district.khoroos.length > 0 && (
               <button
@@ -165,7 +175,7 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                     : 'text-[#72778A] hover:text-[#0B124D]'
                 }`}
               >
-                🏘️ Хороод ({district.khoroos.length})
+                🏘️ {isMn ? 'Хороод' : 'Khoroos'} ({district.khoroos.length})
               </button>
             )}
             <button
@@ -176,7 +186,7 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                   : 'text-[#72778A] hover:text-[#0B124D]'
               }`}
             >
-              🚒 Дэд бүтэц
+              {isMn ? '🚒 Дэд бүтэц' : '🚒 Infrastructure'}
             </button>
           </div>
 
@@ -189,6 +199,16 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                 
                 {/* Photo Banner with Click to Zoom */}
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-haspopup="dialog"
+                  aria-label={isMn ? 'Бодит зургийг томруулж харах' : 'Zoom the on-the-ground photo'}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setIsPhotoModalOpen(true);
+                    }
+                  }}
                   onClick={() => setIsPhotoModalOpen(true)}
                   className="relative h-24 rounded-2xl overflow-hidden cursor-pointer group shadow-2xs border border-black/[0.06] bg-gradient-to-tr from-[#0B124D] via-[#11166B] to-[#1a228a]"
                 >
@@ -204,14 +224,14 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex items-end justify-between p-3">
                     <div>
                       <span className="text-[10px] font-mono text-white/70 uppercase block">
-                        Бодит нөхцөл байдал
+                        {isMn ? 'Бодит нөхцөл байдал' : 'On the ground'}
                       </span>
                       <span className="text-xs font-bold text-white flex items-center gap-1">
-                        🔍 4K Зураг томруулж шалгах
+                        {isMn ? '🔍 4K Зураг томруулж шалгах' : '🔍 Zoom the 4K photo'}
                       </span>
                     </div>
                     <span className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold ${riskBadgeColor}`}>
-                      {activeRiskScore}% эрсдэл
+                      {activeRiskScore}% {isMn ? 'эрсдэл' : 'risk'}
                     </span>
                   </div>
                 </div>
@@ -229,7 +249,7 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
             {activeTab === 'khoroos' && !isKhorooView && district?.khoroos && (
               <div className="space-y-2">
                 <span className="text-[10px] font-mono uppercase tracking-widest text-[#72778A] font-bold block mb-1">
-                  ХОРООДЫН ЭРСДЭЛИЙН ЖАГСААЛТ (ДАРЖ СОНГОХ)
+                  {isMn ? 'ХОРООДЫН ЭРСДЭЛИЙН ЖАГСААЛТ (ДАРЖ СОНГОХ)' : 'KHOROO RISK LIST (TAP TO INSPECT)'}
                 </span>
                 <div className="space-y-1.5">
                   {district.khoroos.map((kh) => {
@@ -252,7 +272,10 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                               {kh.nameMn}
                             </span>
                             <span className="text-[10px] text-[#72778A] line-clamp-1">
-                              {kh.landmarksMn[0] || 'Гэр хороолол'}
+                              {escapeHtml(
+                                (isMn ? kh.landmarksMn[0] : kh.landmarksEn[0]) ||
+                                (isMn ? 'Гэр хороолол' : 'Ger settlement')
+                              )}
                             </span>
                           </div>
                         </div>
@@ -283,25 +306,31 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="p-3 rounded-2xl bg-[#F7F8FA] border border-black/[0.04]">
                     <span className="text-[10px] text-[#72778A] block mb-0.5">
-                      🚒 Хамгийн ойр галын анги
+                      {isMn ? '🚒 Хамгийн ойр галын анги' : '🚒 Nearest fire station'}
                     </span>
                     <span className="font-mono font-bold text-[#0B124D] text-base">
-                      {isKhorooView ? `~${selectedKhoroo?.avgResponseTimeMin} мин` : `~${district?.nearestStationDistKm} км`}
+                      {isKhorooView
+                        ? `~${selectedKhoroo?.avgResponseTimeMin} ${isMn ? 'мин' : 'min'}`
+                        : `~${district?.nearestStationDistKm} ${isMn ? 'км' : 'km'}`}
                     </span>
                   </div>
 
                   <div className="p-3 rounded-2xl bg-[#F7F8FA] border border-black/[0.04]">
                     <span className="text-[10px] text-[#72778A] block mb-0.5">
-                      💧 {isKhorooView ? 'Усны гидрант' : 'Гал унтраах анги'}
+                      {isKhorooView
+                        ? (isMn ? '💧 Усны гидрант' : '💧 Fire hydrants')
+                        : (isMn ? '💧 Гал унтраах анги' : '💧 Fire stations')}
                     </span>
                     <span className="font-mono font-bold text-[#0B124D] text-base">
-                      {isKhorooView ? `${selectedKhoroo?.fireHydrantCount ?? 0} ш` : `${district?.fireStationsCount ?? 0} анги`}
+                      {isKhorooView
+                        ? `${selectedKhoroo?.fireHydrantCount ?? 0} ${isMn ? 'ш' : 'pcs'}`
+                        : `${district?.fireStationsCount ?? 0} ${isMn ? 'анги' : 'units'}`}
                     </span>
                   </div>
 
                   <div className="p-3 rounded-2xl bg-[#F7F8FA] border border-black/[0.04]">
                     <span className="text-[10px] text-[#72778A] block mb-0.5">
-                      🎪 Гэр хорооллын өрх
+                      {isMn ? '🎪 Гэр хорооллын өрх' : '🎪 Ger households'}
                     </span>
                     <span className="font-mono font-bold text-[#0B124D] text-base">
                       {isKhorooView ? `${selectedKhoroo?.gerHouseholdPercent}%` : `${district?.gerHouseholdPercent}%`}
@@ -310,10 +339,12 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
 
                   <div className="p-3 rounded-2xl bg-[#F7F8FA] border border-black/[0.04]">
                     <span className="text-[10px] text-[#72778A] block mb-0.5">
-                      🛣️ Замын нэвтрэлт
+                      {isMn ? '🛣️ Замын нэвтрэлт' : '🛣️ Road access'}
                     </span>
                     <span className="font-mono font-bold text-[#0B124D] text-base">
-                      {isKhorooView ? selectedKhoroo?.roadAccessibility : `${district?.roadAccessibilityGrade} түвшин`}
+                      {isKhorooView
+                        ? roadAccessLabel(selectedKhoroo?.roadAccessibility, isMn)
+                        : `${district?.roadAccessibilityGrade} ${isMn ? 'түвшин' : 'grade'}`}
                     </span>
                   </div>
                 </div>
@@ -321,12 +352,12 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                 {/* Field Observations */}
                 <div className="p-3.5 rounded-2xl bg-[#F7F8FA] border border-black/[0.04] space-y-1.5">
                   <span className="text-[10px] font-mono uppercase tracking-widest text-[#FF633C] font-bold block">
-                    ШИНЖИЛГЭЭНИЙ ТЭМДЭГЛЭЛ
+                    {isMn ? 'ШИНЖИЛГЭЭНИЙ ТЭМДЭГЛЭЛ' : 'ANALYST NOTE'}
                   </span>
                   <p className="text-xs text-[#12152A]/85 leading-relaxed">
                     {isKhorooView
-                      ? selectedKhoroo?.primaryRiskFactorMn
-                      : district?.keyObservationsMn}
+                      ? (isMn ? selectedKhoroo?.primaryRiskFactorMn : selectedKhoroo?.primaryRiskFactorEn)
+                      : (isMn ? district?.keyObservationsMn : district?.keyObservationsEn)}
                   </p>
                 </div>
               </div>
@@ -341,7 +372,7 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
               className="px-3 py-2 bg-white border border-black/[0.08] hover:bg-slate-100 text-[#0B124D] text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5"
             >
               <span>📷</span>
-              <span>Бодит зураг</span>
+              <span>{isMn ? 'Бодит зураг' : 'Real photo'}</span>
             </button>
 
             {!isKhorooView && district && onNavigateToDetail && (
@@ -349,7 +380,7 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                 onClick={() => onNavigateToDetail(district.id)}
                 className="flex-1 py-2 text-xs font-bold text-white bg-[#0B124D] hover:bg-[#11166B] rounded-xl transition-all text-center shadow-xs active:scale-95 truncate px-2"
               >
-                Дүүргийн дэлгэрэнгүй шинжилгээ
+                {isMn ? 'Дүүргийн дэлгэрэнгүй шинжилгээ' : 'Full district analysis'}
               </button>
             )}
 
@@ -358,7 +389,7 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
                 onClick={() => onSelectKhoroo && onSelectKhoroo(null)}
                 className="flex-1 py-2 text-xs font-bold text-white bg-[#0B124D] hover:bg-[#11166B] rounded-xl transition-all text-center shadow-xs truncate px-2"
               >
-                Дүүргийн харагдац руу буцах
+                {isMn ? 'Дүүргийн харагдац руу буцах' : 'Back to district view'}
               </button>
             )}
           </div>
@@ -387,20 +418,22 @@ export const AreaAnalysisPanel: React.FC<AreaAnalysisPanelProps> = ({
         riskScore={activeRiskScore}
         language={language}
         metrics={[
-          { label: 'Эрсдэлийн магадлал', value: `${activeRiskScore}%` },
+          { label: isMn ? 'Эрсдэлийн магадлал' : 'Fire probability', value: `${activeRiskScore}%` },
           {
-            label: isKhorooView ? 'Өрхийн тоо' : 'Хүн ам',
+            label: isKhorooView ? (isMn ? 'Өрхийн тоо' : 'Households') : isMn ? 'Хүн ам' : 'Population',
             value: isKhorooView
-              ? `${selectedKhoroo?.households.toLocaleString()} өрх`
-              : `${district?.population.toLocaleString()} хүн`,
+              ? `${selectedKhoroo?.households.toLocaleString()} ${isMn ? 'өрх' : 'hh'}`
+              : `${district?.population.toLocaleString()} ${isMn ? 'хүн' : 'people'}`,
           },
           {
-            label: 'Гэр хороолол',
+            label: isMn ? 'Гэр хороолол' : 'Ger share',
             value: `${isKhorooView ? selectedKhoroo?.gerHouseholdPercent : district?.gerHouseholdPercent}%`,
           },
           {
-            label: 'Гал сөнөөгч хүрэх',
-            value: isKhorooView ? `~${selectedKhoroo?.avgResponseTimeMin} мин` : `~${district?.nearestStationDistKm} км`,
+            label: isMn ? 'Гал сөнөөгч хүрэх' : 'Response',
+            value: isKhorooView
+              ? `~${selectedKhoroo?.avgResponseTimeMin} ${isMn ? 'мин' : 'min'}`
+              : `~${district?.nearestStationDistKm} ${isMn ? 'км' : 'km'}`,
           },
         ]}
       />

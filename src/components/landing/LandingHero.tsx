@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ActiveTab, Language } from '../../types';
+import { ActiveTab, Language, RiskLevel } from '../../types';
 import { getTranslation } from '../../i18n/translations';
-import { MONTH_RISK_CALENDAR } from '../../data/ubGeoData';
+import { MONTH_RISK_CALENDAR, TOTAL_HISTORICAL_INCIDENTS } from '../../data/ubGeoData';
+import { useLiveWeather } from '../../hooks/liveWeather';
 import { FireAnimation } from '../common/FireAnimation';
 import { AmbientFireBackground } from '../common/AmbientFireBackground';
 
@@ -21,8 +22,10 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
   onOpenFamilyMode,
 }) => {
   const t = getTranslation(language);
+  const isMn = language === 'mn';
+  const live = useLiveWeather();
   const [activeSolutionIdx, setActiveSolutionIdx] = useState<number>(0);
-  const [phoneMonthIdx, setPhoneMonthIdx] = useState<number>(3); // April (month 4)
+  const [phoneMonthIdx, setPhoneMonthIdx] = useState<number>(() => new Date().getMonth());
 
   const solutions = [
     {
@@ -60,6 +63,22 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
   ];
 
   const selectedMonth = MONTH_RISK_CALENDAR[phoneMonthIdx];
+
+  const WEEK_LEVEL_TEXT: Record<RiskLevel, { mn: string; en: string }> = {
+    low: { mn: 'БАГА ЭРСДЭЛ', en: 'LOW RISK' },
+    moderate: { mn: 'ДУНД ЭРСДЭЛ', en: 'MODERATE' },
+    high: { mn: 'ӨНДӨР ЭРСДЭЛ', en: 'HIGH RISK' },
+    very_high: { mn: 'МАШ ӨНДӨР', en: 'VERY HIGH' },
+  };
+
+  // The phone mock-up badge must not stay red when a month is genuinely calm.
+  const weekTone =
+    selectedMonth.riskLevel === 'high' || selectedMonth.riskLevel === 'very_high'
+      ? { box: 'bg-red-50 border-red-100', note: 'text-red-600', strong: 'text-[#E93B2F]' }
+      : selectedMonth.riskLevel === 'moderate'
+      ? { box: 'bg-amber-50 border-amber-100', note: 'text-amber-700', strong: 'text-[#C2740B]' }
+      : { box: 'bg-emerald-50 border-emerald-100', note: 'text-emerald-700', strong: 'text-[#0E9F86]' };
+  const weekText = WEEK_LEVEL_TEXT[selectedMonth.riskLevel] ?? WEEK_LEVEL_TEXT.moderate;
 
   return (
     <div className="w-full bg-[#F7F8FA]">
@@ -142,7 +161,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
             <div className="pt-5 border-t border-white/10">
               <div className="flex items-baseline gap-2">
                 <span className="font-mono text-4xl sm:text-6xl font-bold tracking-tight text-white tabular-nums">
-                  1,937
+                  {TOTAL_HISTORICAL_INCIDENTS.toLocaleString()}
                 </span>
                 <span className="text-xs font-mono text-[#FF633C] uppercase tracking-wider font-semibold">
                   records
@@ -150,7 +169,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
               </div>
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 <p className="text-xs text-white/70">
-                  {language === 'mn'
+                  {isMn
                     ? 'Шинжилгээнд хамруулсан орон зайн дуудлагын өгөгдөл'
                     : 'Historical spatial incident records modeled'}
                 </p>
@@ -168,7 +187,14 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
           {/* Bottom Left Quick Meta */}
           <div className="z-10 pt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/50 border-t border-white/10 font-mono">
             <span>Ulaanbaatar · Mongolia</span>
-            <span>Spatial Engine · Apple Grade</span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  live.isLive ? 'bg-[#12B89A] animate-pulse' : 'bg-amber-400'
+                }`}
+              />
+              {live.isLive ? 'LIVE METEO' : isMn ? 'СҮРТЕЛЦ ӨГӨГДӨЛ' : 'SAMPLE METEO'}
+            </span>
           </div>
         </div>
 
@@ -225,6 +251,16 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                 return (
                   <div
                     key={item.num}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={item.title}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveSolutionIdx(idx);
+                        onSelectTab(item.tabTarget);
+                      }
+                    }}
                     onClick={() => {
                       setActiveSolutionIdx(idx);
                       onSelectTab(item.tabTarget);
@@ -272,23 +308,33 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                         <div className="w-2.5 h-2.5 rounded-full bg-[#FF633C]" />
                         <span className="font-bold tracking-tight text-[#0B124D]">FIREWATCH UB</span>
                       </div>
-                      <span className="text-[10px] font-mono text-slate-400">LIVE APP</span>
+                      <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            live.isLive ? 'bg-[#12B89A] animate-pulse' : 'bg-amber-400'
+                          }`}
+                        />
+                        {live.isLive ? 'LIVE' : 'DEMO'}
+                      </span>
+                    </div>
+
+                    {/* Live fire-weather conditions, straight from the meteo feed */}
+                    <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-slate-500 bg-slate-50 rounded-lg px-2 py-1">
+                      <span>{live.symbol} {live.tempCelsius}°C</span>
+                      <span>{isMn ? 'Чийгшил' : 'RH'} {live.humidityPercent}%</span>
+                      <span className="text-[#FF633C] font-bold">FWI {live.fireWeatherIndex}</span>
                     </div>
 
                     {/* Current Week Risk Indicator */}
-                    <div className="mt-2.5 sm:mt-3 bg-red-50 p-2 sm:p-2.5 rounded-2xl border border-red-100">
-                      <span className="text-[10px] text-red-600 font-medium block">
+                    <div className={`mt-2.5 sm:mt-3 p-2 sm:p-2.5 rounded-2xl border ${weekTone.box}`}>
+                      <span className={`text-[10px] font-medium block ${weekTone.note}`}>
                         {t.phoneBadgeWeek}
                       </span>
                       <div className="flex items-baseline justify-between mt-0.5">
-                        <span className="font-editorial text-base sm:text-lg font-bold text-[#E93B2F]">
-                          {selectedMonth.riskLevel === 'very_high'
-                            ? (language === 'mn' ? 'МАШ ӨНДӨР' : 'VERY HIGH')
-                            : selectedMonth.riskLevel === 'high'
-                            ? (language === 'mn' ? 'ӨНДӨР ЭРСДЭЛ' : 'HIGH RISK')
-                            : (language === 'mn' ? 'ДУНД ЭРСДЭЛ' : 'MODERATE')}
+                        <span className={`font-editorial text-base sm:text-lg font-bold ${weekTone.strong}`}>
+                          {language === 'mn' ? weekText.mn : weekText.en}
                         </span>
-                        <span className="font-mono text-xs font-bold text-[#E93B2F] tabular-nums">
+                        <span className={`font-mono text-xs font-bold tabular-nums ${weekTone.strong}`}>
                           {selectedMonth.riskScore} / 100
                         </span>
                       </div>
@@ -297,7 +343,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                     {/* 12-Month Mini Calendar Strip */}
                     <div className="mt-2.5 sm:mt-3">
                       <span className="text-[10px] font-semibold text-slate-500 block mb-1.5">
-                        {t.phoneCalendarTitle} ({selectedMonth.nameMn})
+                        {t.phoneCalendarTitle} ({isMn ? selectedMonth.nameMn : selectedMonth.nameEn})
                       </span>
                       <div className="grid grid-cols-6 gap-1">
                         {MONTH_RISK_CALENDAR.map((m, i) => {

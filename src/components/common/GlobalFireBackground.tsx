@@ -1,14 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { Language } from '../../types';
 
 export type FireBackgroundMode = 'vivid' | 'soft' | 'off';
 
 interface GlobalFireBackgroundProps {
   initialMode?: FireBackgroundMode;
+  language?: Language;
 }
 
 export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
   initialMode = 'soft',
+  language = 'mn',
 }) => {
+  const isMn = language === 'mn';
   const [mode, setMode] = useState<FireBackgroundMode>(() => {
     try {
       const saved = localStorage.getItem('firewatch_bg_mode');
@@ -162,8 +166,6 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
         ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
         ctx.fill();
       }
-
-      animId = requestAnimationFrame(render);
     };
 
     animId = requestAnimationFrame(render);
@@ -184,7 +186,7 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
       */}
       {!isOff && !isCompactViewport && (
         <div
-          className={`fixed bottom-0 left-0 right-0 pointer-events-none z-[32] overflow-hidden select-none transition-all duration-300 ${
+          className={`fire-ambient-bg fixed bottom-0 left-0 right-0 print:hidden pointer-events-none z-[32] overflow-hidden select-none transition-all duration-300 ${
             mode === 'vivid' ? 'h-[120px]' : 'h-[80px]'
           }`}
           aria-hidden="true"
@@ -195,17 +197,18 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
           {/* Smooth Canvas with ZERO lag */}
           <canvas
             ref={canvasRef}
+            data-decorative="true"
             className="absolute bottom-0 left-0 w-full h-full pointer-events-none"
           />
         </div>
       )}
 
       {/* Clean, Non-intrusive Control Pill (Bottom Right - Desktop only to keep mobile viewport clean) */}
-      <div className="hidden lg:block fixed bottom-3 right-3 z-[45]">
+      <div className="hidden lg:block fixed bottom-3 right-3 z-[45] print:hidden">
         <div className="bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-full border border-black/[0.08] shadow-lg flex items-center gap-2 text-xs font-sans transition-all hover:bg-white">
           <span className="flex items-center gap-1 font-bold text-[#0B124D] text-[11px]">
             <span className={`w-2 h-2 rounded-full ${isOff ? 'bg-slate-300' : 'bg-[#FF633C] animate-pulse'}`} />
-            🔥 Арын гал:
+            {isMn ? '🔥 Арын гал:' : '🔥 Backdrop fire:'}
           </span>
 
           <div className="flex items-center bg-[#F2F4F7] p-0.5 rounded-full text-[10px] font-semibold">
@@ -216,9 +219,9 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
                   ? 'bg-[#0B124D] text-white font-bold shadow-xs'
                   : 'text-[#72778A] hover:text-black'
               }`}
-              title="Зөөлөн, намуун галын дөл"
+              title={isMn ? 'Зөөлөн, намуун галын дөл' : 'Soft, gentle flames'}
             >
-              Зөөлөн
+              {isMn ? 'Зөөлөн' : 'Soft'}
             </button>
             <button
               onClick={() => setMode('vivid')}
@@ -227,9 +230,9 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
                   ? 'bg-[#FF633C] text-white font-bold shadow-xs'
                   : 'text-[#72778A] hover:text-black'
               }`}
-              title="Тод галын дөл"
+              title={isMn ? 'Тод галын дөл' : 'Vivid flames'}
             >
-              Тод
+              {isMn ? 'Тод' : 'Vivid'}
             </button>
             <button
               onClick={() => setMode('off')}
@@ -238,9 +241,9 @@ export const GlobalFireBackground: React.FC<GlobalFireBackgroundProps> = ({
                   ? 'bg-slate-700 text-white font-bold shadow-xs'
                   : 'text-[#72778A] hover:text-black'
               }`}
-              title="Галыг унтраах"
+              title={isMn ? 'Галыг унтраах' : 'Turn the backdrop off'}
             >
-              Хаах
+              {isMn ? 'Хаах' : 'Off'}
             </button>
           </div>
         </div>
